@@ -20,4 +20,6 @@ task build {
 exec build  # make sure to execute the task at the end. 
 ```
 
+- Is it fast?
 
+    I think so. It compiles itself (cold run after deleting all the caches) in around 10 seconds (8 on average) 
