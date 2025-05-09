@@ -1,0 +1,8 @@
+task build {
+    push "Building... " 
+    shell "go build -o ./target/taskr"
+    push "Done. Exit code: "
+    push $? 
+}
+
+exec build 
