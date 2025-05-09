@@ -1,4 +1,7 @@
 task build {
+    foreach "./*.go" {
+        push "found a go file"
+    }
     push "Building... " 
     shell "go build -o ./target/taskr"
     push "Done. Exit code: "
