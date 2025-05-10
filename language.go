@@ -461,15 +461,24 @@ func (p *Parser) parseIfStatement() *IfStatement {
 func (p *Parser) parseForEachStatement() *ForEachStatement {
 	stmt := &ForEachStatement{}
 
-	p.nextToken()
+	p.nextToken() // consume `foreach`
 
 	if !p.currentTokenIs(STRING) && !p.currentTokenIs(IDENT) {
-		p.errors = append(p.errors, fmt.Sprintf("Line %d, Column %d: expected string or identifier, got %TokenType", p.currentToken.Line, p.currentToken.Column, p.currentToken.Type))
+		p.errors = append(p.errors, fmt.Sprintf("Line %d, Column %d: expected string or identifier, got %s", p.currentToken.Line, p.currentToken.Column, p.currentToken.Literal))
 		return nil
 	}
 
 	stmt.Pattern = p.currentToken.Literal
-	stmt.VarName = "$_"
+	stmt.VarName = "it"
+
+	if p.peekTokenIs(IDENT) {
+		p.nextToken()
+		varName := p.currentToken.Literal
+		if string(varName[0]) == "$" {
+			varName = varName[1:]
+		}
+		stmt.VarName = varName
+	}
 
 	if !p.expectPeek(LBRACE) {
 		return nil
@@ -679,19 +688,36 @@ func (i *Interpreter) evaluateIf(ifStmt *IfStatement) (any, error) {
 func (i *Interpreter) evaluateForEach(forEachStmt *ForEachStatement) (any, error) {
 	pattern := forEachStmt.Pattern
 
+	if !strings.HasPrefix(pattern, "\"") && !strings.HasPrefix(pattern, "'") {
+		if val, exists := i.env.GetVariable(pattern); exists {
+			if str, ok := val.(string); ok {
+				pattern = str
+			} else {
+				return nil, fmt.Errorf("foreach pattern must evaluate to a string, got %T", val)
+			}
+		}
+	}
+
+	if strings.HasPrefix(pattern, "\"") && strings.HasSuffix(pattern, "\"") {
+		pattern = pattern[1 : len(pattern)-1]
+	}
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		return nil, err
 	}
-
 	var result any
 
+	oldValue, exists := i.env.GetVariable(forEachStmt.VarName)
 	for _, match := range matches {
-		i.env.SetVariable("i", match)
+		i.env.SetVariable(forEachStmt.VarName, match)
 
 		result, err = i.Evaluate(forEachStmt.Body)
 		if err != nil {
-			return nil, err
+			if exists {
+				i.env.SetVariable(forEachStmt.VarName, oldValue)
+			} else {
+				delete(i.env.variables, forEachStmt.VarName)
+			}
 		}
 	}
 
