@@ -687,7 +687,7 @@ func (i *Interpreter) evaluateForEach(forEachStmt *ForEachStatement) (any, error
 	var result any
 
 	for _, match := range matches {
-		i.env.SetVariable("_", match)
+		i.env.SetVariable("i", match)
 
 		result, err = i.Evaluate(forEachStmt.Body)
 		if err != nil {
