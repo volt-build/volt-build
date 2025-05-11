@@ -38,6 +38,7 @@ const (
 	AND         // &&
 	OR          // ||
 	SHELL       // $
+	CONCAT      // ++ (new concatenation operator [fire])
 
 	// Delimiters.
 	COMMA     // `,`
@@ -58,10 +59,9 @@ const (
 	IMPORT     // include
 	DEPENDENCY // (require programs) require
 	SWAP       // (swap two variables) swap
-	LANGUAGE   // (Set language you're working with (optional)) lang
-	FOR        // (for loop dawg) for
 	WHILE      // while
 	FOREACH    // (foreach thing in an array or some shit idk) foreach
+	COMPILE    // (compile things with command)  compile
 )
 
 type Token struct {
@@ -89,14 +89,13 @@ func NewLexer(input string) *Lexer {
 	}
 	l.keywords = map[string]TokenType{
 		"task":     TASK,
+		"compile":  COMPILE,
 		"require":  DEPENDENCY,
 		"if":       IF,
 		"else":     ELSE,
 		"swap":     SWAP,
-		"lang":     LANGUAGE,
 		"requires": DEPENDENCY,
 		"while":    WHILE,
-		"for":      FOR,
 		"foreach":  FOREACH,
 	}
 
@@ -151,8 +150,14 @@ func (l *Lexer) NextToken() Token {
 		tok.Type = DEFINE
 		tok.Literal = "="
 	case '+':
-		tok.Type = PLUS
-		tok.Literal = "+"
+		if l.peekChar() == '+' {
+			l.readChar()
+			tok.Type = CONCAT
+			tok.Literal = "++"
+		} else {
+			tok.Type = PLUS
+			tok.Literal = "+"
+		}
 	case '-':
 		tok.Type = MINUS
 		tok.Literal = "-"

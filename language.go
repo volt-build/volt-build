@@ -31,6 +31,7 @@ const (
 	ForNode        NodeType = "FOR"
 	AssignmentNode NodeType = "ASSIGNMENT"
 	BlockNode      NodeType = "BLOCK"
+	CompileNode    NodeType = "COMPILE"
 
 	// Expression nodes
 	IdentNode     NodeType = "IDENT"
@@ -39,6 +40,7 @@ const (
 	BinaryOpNode  NodeType = "BINARY_OP"
 	UnaryOpNode   NodeType = "UNARY_OP"
 	ShellExprNode NodeType = "SHELL_EXPR"
+	ConcatNode    NodeType = "CONCAT"
 )
 
 var lexerMap map[TokenType]string = map[TokenType]string{
@@ -64,6 +66,7 @@ var lexerMap map[TokenType]string = map[TokenType]string{
 	AND:         "&&",
 	OR:          "||",
 	SHELL:       "$",
+	CONCAT:      "++",
 	COMMA:       "comma",
 	SEMICOLON:   ";",
 	LPAREN:      "(",
@@ -79,16 +82,35 @@ var lexerMap map[TokenType]string = map[TokenType]string{
 	ELSE:        "ELSE",
 	IMPORT:      "IMPORT",
 	DEPENDENCY:  "DEPENDENCY",
-	SWAP:        "SWA",
-	LANGUAGE:    "LANGUAG",
-	FOR:         "FOR",
+	SWAP:        "SWAP",
 	WHILE:       "WHILE",
 	FOREACH:     "FOREACH",
+	COMPILE:     "COMPILE",
 }
 
 type Node interface {
 	Type() NodeType
 	String() string
+}
+
+type CompileStatement struct {
+	File    Node
+	Command Node
+}
+
+func (c *CompileStatement) Type() NodeType { return CompileNode }
+func (c *CompileStatement) String() string {
+	return fmt.Sprintf("compile %s %s", c.File.String(), c.Command.String())
+}
+
+type ConcatOperation struct {
+	Left  Node
+	Right Node
+}
+
+func (c *ConcatOperation) Type() NodeType { return ConcatNode }
+func (c *ConcatOperation) String() string {
+	return fmt.Sprintf("%s ++ %s", c.Left.String(), c.Right.String())
 }
 
 type Program struct {
@@ -344,7 +366,12 @@ func (p *Parser) parseStatement() Node {
 		if p.currentToken.Literal == "push" {
 			return p.parsePushStatement()
 		}
+		if p.currentToken.Literal == "compile" {
+			return p.parseCompileStatement()
+		}
 		return nil
+	case COMPILE:
+		return p.parseCompileStatement()
 	case IF:
 		return p.parseIfStatement()
 	case FOREACH:
@@ -355,6 +382,34 @@ func (p *Parser) parseStatement() Node {
 	default:
 		return nil
 	}
+}
+
+func (p *Parser) parseCompileStatement() *CompileStatement {
+	stmt := &CompileStatement{}
+
+	p.nextToken()                   // consume the "compile" keyword"
+	stmt.File = p.parseExpression() // parse the expression in front of `compile`
+	p.nextToken()                   // move onto the next expression
+
+	stmt.Command = p.parseExpressionWithConcat()
+	return stmt
+}
+
+func (p *Parser) parseExpressionWithConcat() Node {
+	left := p.parseExpression()
+	if p.peekTokenIs(CONCAT) {
+		p.nextToken() // consume current token
+		p.nextToken() // consume "compile"
+
+		right := p.parseExpressionWithConcat()
+
+		return &ConcatOperation{
+			Left:  left,
+			Right: right,
+		}
+	}
+
+	return left
 }
 
 func (p *Parser) parseTaskDefinition() *TaskDef {
@@ -500,20 +555,37 @@ func (p *Parser) parseAssignStatement() *AssignmentStatement {
 }
 
 func (p *Parser) parseExpression() Node {
+	var left Node
+
 	switch p.currentToken.Type {
 	case STRING:
-		return &StringLiteral{Value: p.currentToken.Literal}
+		left = &StringLiteral{Value: p.currentToken.Literal}
 	case NUMBER:
 		value, _ := strconv.ParseFloat(p.currentToken.Literal, 64)
-		return &NumberLiteral{Value: value}
+		left = &NumberLiteral{Value: value}
 	case IDENT:
-		return &Identifier{Value: p.currentToken.Literal}
+		left = &Identifier{Value: p.currentToken.Literal}
 	case SHELL:
 		p.nextToken() // consume '$'
-		return &ShellExpr{Name: p.currentToken.Literal}
+		left = &ShellExpr{Name: p.currentToken.Literal}
 	default:
 		return nil
 	}
+
+	// Check for concatenation operator
+	if p.peekTokenIs(CONCAT) {
+		p.nextToken() // consume the current token
+		p.nextToken() // consume the CONCAT token
+
+		right := p.parseExpression() // Handle right-associative concatenation
+
+		return &ConcatOperation{
+			Left:  left,
+			Right: right,
+		}
+	}
+
+	return left
 }
 
 type Environment struct {
@@ -577,6 +649,8 @@ func (i *Interpreter) Evaluate(node Node) (any, error) {
 		return i.evaluateForEach(node.(*ForEachStatement))
 	case BlockNode:
 		return i.evaluateBlock(node.(*BlockStatement))
+	case CompileNode:
+		return i.evaluateCompile(node.(*CompileStatement))
 	case StringNode:
 		return node.(*StringLiteral).Value, nil
 	case NumberNode:
@@ -585,9 +659,72 @@ func (i *Interpreter) Evaluate(node Node) (any, error) {
 		return i.evaluateIdentifier(node.(*Identifier))
 	case ShellExprNode:
 		return i.evaluateShellExpr(node.(*ShellExpr))
+	case ConcatNode:
+		return i.evaluateConcat(node.(*ConcatOperation))
 	default:
 		return nil, fmt.Errorf("unknown node type: %s", node.Type())
 	}
+}
+
+func (i *Interpreter) evaluateCompile(cmpStmt *CompileStatement) (any, error) {
+	fileExpr, err := i.Evaluate(cmpStmt.File)
+	if err != nil {
+		return nil, err
+	}
+
+	fileStr, ok := fileExpr.(string)
+	if !ok {
+		return nil, fmt.Errorf("compile file must be a string, else its not used and throws this error")
+	}
+
+	cmdExpr, err := i.Evaluate(cmpStmt.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	cmdStr, ok := cmdExpr.(string)
+	if !ok {
+		return nil, fmt.Errorf("compile command must be a string")
+	}
+
+	fmt.Printf("Compiling %s, with %s as command.\n", fileStr, cmdStr)
+
+	cmd := exec.Command("sh", "-c", cmdStr+" "+fileStr)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// initalize a channel to fill when command is done on seperate goroutine (cuz i like speed)
+	errCh := make(chan error, 1)
+
+	// run on seperate goroutine
+	go func() {
+		errCh <- cmd.Run()
+	}()
+
+	err = <-errCh
+	if err != nil {
+		i.env.lastExitCode = 1
+	} else {
+		i.env.lastExitCode = 0
+	}
+
+	return nil, err
+}
+
+func (i *Interpreter) evaluateConcat(concatOp *ConcatOperation) (any, error) {
+	leftVal, err := i.Evaluate(concatOp.Left)
+	if err != nil {
+		return nil, err
+	}
+
+	rightVal, err := i.Evaluate(concatOp.Right)
+	if err != nil {
+		return nil, err
+	}
+	leftStr := fmt.Sprintf("%v", leftVal)
+	rightStr := fmt.Sprintf("%v", rightVal)
+
+	return leftStr + rightStr, nil
 }
 
 func (i *Interpreter) evaluateProgram(p *Program) (any, error) {
