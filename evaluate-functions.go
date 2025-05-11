@@ -1,0 +1,256 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+)
+
+func (i *Interpreter) evaluateCompile(cmpStmt *CompileStatement) (any, error) {
+	fileExpr, err := i.Evaluate(cmpStmt.File)
+	if err != nil {
+		return nil, err
+	}
+
+	fileStr, ok := fileExpr.(string)
+	if !ok {
+		return nil, fmt.Errorf("compile file must be a string, else its not used and throws this error")
+	}
+
+	cmdExpr, err := i.Evaluate(cmpStmt.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	cmdStr, ok := cmdExpr.(string)
+	if !ok {
+		return nil, fmt.Errorf("compile command must be a string")
+	}
+
+	fmt.Printf("Compiling %s, with %s as command.\n", fileStr, cmdStr)
+
+	cmd := exec.Command("sh", "-c", cmdStr+" "+fileStr)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// initalize a channel to fill when command is done on seperate goroutine (cuz i like speed)
+	errCh := make(chan error, 1)
+
+	// run on seperate goroutine
+	go func() {
+		errCh <- cmd.Run()
+	}()
+
+	err = <-errCh
+	if err != nil {
+		i.env.lastExitCode = 1
+	} else {
+		i.env.lastExitCode = 0
+	}
+
+	return nil, err
+}
+
+func (i *Interpreter) evaluateConcat(concatOp *ConcatOperation) (any, error) {
+	leftVal, err := i.Evaluate(concatOp.Left)
+	if err != nil {
+		return nil, err
+	}
+
+	rightVal, err := i.Evaluate(concatOp.Right)
+	if err != nil {
+		return nil, err
+	}
+	leftStr := fmt.Sprintf("%v", leftVal)
+	rightStr := fmt.Sprintf("%v", rightVal)
+
+	return leftStr + rightStr, nil
+}
+
+func (i *Interpreter) evaluateProgram(p *Program) (any, error) {
+	var result any
+	var err error
+
+	for _, stmt := range p.Statements {
+		if stmt.Type() == TaskDefNode {
+			task := stmt.(*TaskDef)
+			i.env.RegisterTask(task)
+		}
+	}
+
+	for _, stmt := range p.Statements {
+		result, err = i.Evaluate(stmt)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return result, nil
+}
+
+func (i *Interpreter) evaluateTaskDef(task *TaskDef) (any, error) {
+	// Task definitions are handled in first pass.
+	return nil, nil
+}
+
+func (i *Interpreter) evaluateExec(execStmt *ExecStatement) (any, error) {
+	task, exists := i.env.GetTask(execStmt.TaskName)
+	if !exists {
+		return nil, fmt.Errorf("task %s not found", execStmt.TaskName)
+	}
+
+	for _, depName := range task.Dependencies {
+		dep, exists := i.env.GetTask(depName)
+		if !exists {
+			return nil, fmt.Errorf("task %s doesn't exist", depName)
+		}
+
+		_, err := i.Evaluate(dep.Body)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return i.Evaluate(task.Body)
+}
+
+func (i *Interpreter) evaluateShell(shellStmt *ShellStatement) (any, error) {
+	cmdExpr, err := i.Evaluate(shellStmt.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	cmdStr, ok := cmdExpr.(string)
+	if !ok {
+		return nil, fmt.Errorf("shell command must be a string")
+	}
+
+	cmd := exec.Command("sh", "-c", cmdStr)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// run the command on different goroutine so its atleast a bit parallelized. (cuz its the start)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- cmd.Run()
+	}()
+
+	return nil, <-errCh
+}
+
+func (i *Interpreter) evaluatePush(pushStmt *PushStatement) (any, error) {
+	val, err := i.Evaluate(pushStmt.Value)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(val) // Move print here
+	return val, nil
+}
+
+func (i *Interpreter) evaluateIf(ifStmt *IfStatement) (any, error) {
+	condition, err := i.Evaluate(ifStmt.ThenBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	if isTruthy(condition) {
+		return i.Evaluate(ifStmt.ThenBlock)
+	} else if ifStmt.ElseBlock != nil {
+		return i.Evaluate(ifStmt.ElseBlock)
+	}
+
+	return nil, nil
+}
+
+func (i *Interpreter) evaluateForEach(forEachStmt *ForEachStatement) (any, error) {
+	pattern := forEachStmt.Pattern
+
+	if !strings.HasPrefix(pattern, "\"") && !strings.HasPrefix(pattern, "'") {
+		if val, exists := i.env.GetVariable(pattern); exists {
+			if str, ok := val.(string); ok {
+				pattern = str
+			} else {
+				return nil, fmt.Errorf("foreach pattern must evaluate to a string, got %T", val)
+			}
+		}
+	}
+
+	if strings.HasPrefix(pattern, "\"") && strings.HasSuffix(pattern, "\"") {
+		pattern = pattern[1 : len(pattern)-1]
+	}
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, err
+	}
+	var result any
+
+	oldValue, exists := i.env.GetVariable(forEachStmt.VarName)
+	for _, match := range matches {
+		i.env.SetVariable(forEachStmt.VarName, match)
+
+		result, err = i.Evaluate(forEachStmt.Body)
+		if err != nil {
+			if exists {
+				i.env.SetVariable(forEachStmt.VarName, oldValue)
+			} else {
+				delete(i.env.variables, forEachStmt.VarName)
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func (i *Interpreter) evaluateBlock(blockStmt *BlockStatement) (any, error) {
+	var result any
+	var err error
+
+	for _, stmt := range blockStmt.Statements {
+		result, err = i.Evaluate(stmt)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return result, nil
+}
+
+func (i *Interpreter) evaluateIdentifier(ident *Identifier) (any, error) {
+	val, exists := i.env.GetVariable(ident.Value)
+	if !exists {
+		return nil, fmt.Errorf("variable named %s not found bro", ident.Value)
+	}
+	return val, nil
+}
+
+func (i *Interpreter) evaluateShellExpr(shellExpr *ShellExpr) (any, error) {
+	if shellExpr.Name == "?" {
+		return i.env.lastExitCode, nil
+	}
+
+	// Fallback to actual OS environment
+	if val, ok := os.LookupEnv(shellExpr.Name); ok {
+		return val, nil
+	}
+
+	return nil, fmt.Errorf("unknown shell variable $%s", shellExpr.Name)
+}
+
+func isTruthy(obj any) bool {
+	switch v := obj.(type) {
+	case bool:
+		return v
+	case int:
+		return v != 0
+	case float64:
+		return v != 0
+	case string:
+		return v != ""
+	case nil:
+		return false
+	default:
+		return true
+	}
+}
