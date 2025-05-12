@@ -1,5 +1,6 @@
 {
-  description = "Dev shell with clang, raylib, clang-tools, and bear";
+  # fixed the wrong desc 
+  description = "Go dev shell for direnv";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs";
