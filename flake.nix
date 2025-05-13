@@ -17,6 +17,7 @@
             pkgs.go
             pkgs.golangci-lint
             pkgs.go-tools 
+            pkgs.gopls 
           ];
 
           shellHook = ''
