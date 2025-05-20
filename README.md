@@ -11,7 +11,7 @@ Its a small build system I wrote myself.
 task build {
     # this is a comment 
     shell "# command to execute with sh -c over here" 
-    foreach "./*go" { 
+    foreach "./*.go" { 
         push "found a go file" 
     }
     push "Something to print out stdout" 
@@ -27,6 +27,8 @@ task build {
         push cfile ++ " c file" 
     }
 } 
+
+```
 - Is it fast?
 
     I think so. It compiles itself (cold run after deleting all the caches) in around 10 seconds (8 on average) 
