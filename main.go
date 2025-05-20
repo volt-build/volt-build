@@ -36,7 +36,7 @@ func main() {
 
 	if *version {
 		fmt.Printf("mini-build version: 0.1.0\n")
-		fmt.Printf("Exiting with code: 1")
+		fmt.Printf("Exiting with code: 1\n")
 		os.Exit(1)
 	}
 
