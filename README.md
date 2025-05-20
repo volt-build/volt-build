@@ -31,4 +31,4 @@ task build {
 ```
 - Is it fast?
 
-    Latest build on my machine: 6.52 seconds.  
+    Latest build on my machine: 11.52 seconds
