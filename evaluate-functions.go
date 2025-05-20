@@ -29,8 +29,6 @@ func (i *Interpreter) evaluateCompile(cmpStmt *CompileStatement) (any, error) {
 		return nil, fmt.Errorf("compile command must be a string")
 	}
 
-	fmt.Printf("Compiling %s, with %s as command.\n", fileStr, cmdStr)
-
 	cmd := exec.Command("sh", "-c", cmdStr+" "+fileStr)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

@@ -627,6 +627,10 @@ func NewInterpreter() *Interpreter {
 	}
 }
 
+func (i *Interpreter) GetTasks() map[string]*TaskDef {
+	return i.env.tasks
+}
+
 func (i *Interpreter) Evaluate(node Node) (any, error) {
 	switch node.Type() {
 	case ProgramNode:
