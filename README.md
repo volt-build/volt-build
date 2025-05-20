@@ -31,4 +31,4 @@ task build {
 ```
 - Is it fast?
 
-    I think so. It compiles itself (cold run after deleting all the caches) in around 10 seconds (8 on average) 
+    Latest build on my machine: 6.52 seconds.  
