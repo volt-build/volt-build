@@ -32,3 +32,5 @@ task build {
 - Is it fast?
 
     Latest build on my machine: 11.52 seconds
+
+-# if any older commits than this are unverified they're real, if they're not verified after this commit, they're fake; 
