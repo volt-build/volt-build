@@ -5,7 +5,6 @@ package main
 // Parser too.
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -667,20 +666,38 @@ func (i *Interpreter) Evaluate(node Node) (any, error) {
 	}
 }
 
-// Main way to interact with everything.
-func RunTaskScript(input string) error {
-	lexer := NewLexer(input)
-	parser := NewParser(lexer)
-	program := parser.ParseProgram()
-
-	if len(parser.errors) > 0 {
-		for _, err := range parser.errors {
-			fmt.Println(err)
-		}
-		return errors.New("parsing failed")
+func (i *Interpreter) EvaluateWithPrinting(node Node) (any, error) {
+	switch node.Type() {
+	case ProgramNode:
+		return i.evaluateProgram(node.(*Program))
+	case TaskDefNode:
+		i.env.RegisterTask(node.(*TaskDef))
+		return i.evaluateTaskDef(node.(*TaskDef))
+	case ExecNode:
+		return i.evaluateExec(node.(*ExecStatement))
+	case ShellNode:
+		return i.evaluateShell(node.(*ShellStatement))
+	case PushNode:
+		return i.evaluatePushWithoutPrinting(node.(*PushStatement))
+	case IfNode:
+		return i.evaluateIf(node.(*IfStatement))
+	case ForEachNode:
+		return i.evaluateForEach(node.(*ForEachStatement))
+	case BlockNode:
+		return i.evaluateBlock(node.(*BlockStatement))
+	case CompileNode:
+		return i.evaluateCompile(node.(*CompileStatement))
+	case StringNode:
+		return node.(*StringLiteral).Value, nil
+	case NumberNode:
+		return node.(*NumberLiteral).Value, nil
+	case IdentNode:
+		return i.evaluateIdentifier(node.(*Identifier))
+	case ShellExprNode:
+		return i.evaluateShellExpr(node.(*ShellExpr))
+	case ConcatNode:
+		return i.evaluateConcat(node.(*ConcatOperation))
+	default:
+		return nil, fmt.Errorf("unknown node type: %s", node.Type())
 	}
-
-	interpreter := NewInterpreter()
-	_, err := interpreter.Evaluate(program)
-	return err
 }

@@ -147,6 +147,15 @@ func (i *Interpreter) evaluatePush(pushStmt *PushStatement) (any, error) {
 	return val, nil
 }
 
+func (i *Interpreter) evaluatePushWithoutPrinting(pushStmt *PushStatement) (any, error) {
+	val, err := i.Evaluate(pushStmt.Value)
+	if err != nil {
+		return nil, err
+	}
+	i.env.SetVariable("PushStmtResult", val)
+	return val, nil
+}
+
 func (i *Interpreter) evaluateIf(ifStmt *IfStatement) (any, error) {
 	condition, err := i.Evaluate(ifStmt.ThenBlock)
 	if err != nil {

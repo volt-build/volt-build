@@ -2,7 +2,7 @@ task build {
     push "Building... " 
     shell "go build -o ./target/mini-build"
     push "Done. Exit code: "
-    push $? 
+    push $?
 }
 
 exec build 

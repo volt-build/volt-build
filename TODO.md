@@ -4,15 +4,15 @@
 
 - [x] Lexer 
 - [x] Language basics 
-- [x]  Fix some bugs (I just caused those) 
-- [ ] fetch keyword to fetch stuff from websites (see [this](https://github.com/justachillguy57/Taskr/blob/master/README.md#fetch-keyword)) 
-- [ ] command flags
+### [ ] DOCS!!!
+- [ ] command flags // probably includes the next one too. 
+- [ ] hook up more of the helpers to flags 
 - [ ] more sensible command defaults.
 
 
 #### QoL additions that can wait a bit. 
 
-- [x] Make it run on different threads for speed.
+- [x] Make it run on different goroutines (probably makes it faster, I think, makes me feel better atleast) 
 explaination: 
     it spins up a goroutine every time a shell command is executed, well i dont expect people to be using
     small shell commands so fair thing, everything else which would already be in shell is builtin
