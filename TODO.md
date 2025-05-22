@@ -5,7 +5,7 @@
 - [x] Lexer 
 - [x] Language basics 
 ### [ ] DOCS!!!
-- [ ] command flags // probably includes the next one too. 
+- [ ] command flags // probably includes the next one too. (implementation in progress) 
 - [ ] hook up more of the helpers to flags 
 - [ ] more sensible command defaults.
 
