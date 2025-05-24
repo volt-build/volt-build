@@ -6,7 +6,9 @@ import (
 )
 
 // Main way to interact with everything.
-func RunTaskScript(input string) error {
+func RunTaskScript(input string, verbose bool, silent bool) error {
+	// OPTIMIZE: consider replacing 2 args verbose and silent for only one enum (EvalMode)
+
 	lexer := NewLexer(input)
 	parser := NewParser(lexer)
 	program := parser.ParseProgram()
@@ -19,7 +21,18 @@ func RunTaskScript(input string) error {
 	}
 
 	interpreter := NewInterpreter()
-	_, err := interpreter.Evaluate(program)
+	var err error
+	if !verbose && !silent {
+		_, err = interpreter.Evaluate(program)
+	} else if verbose && !silent {
+		_, err = interpreter.EvaluateVerbosely(program)
+	} else if !verbose && silent {
+		_, err = interpreter.EvaluateWithoutPrinting(program)
+	} else {
+		fmt.Printf("cannot mix flags verbose and silent\n")
+		err = errors.New("conflicting flags")
+	}
+
 	return err
 }
 
@@ -50,42 +63,6 @@ func RunSingleTask(input string, taskName string) error {
 		return fmt.Errorf("task does not exist : %s", task)
 	}
 
-	execStmt := &ExecStatement{TaskName: taskName}
-	_, err := interpreter.evaluateExec(execStmt)
-	return err
-}
-
-// Run a single task with its variables in a map
-// TODO: implement a way to just parse the variables into a map automatically;
-func RunSingleTaskWithVariables(input string, taskName string, vars map[string]any) error {
-	lexer := NewLexer(input)
-	parser := NewParser(lexer)
-	program := parser.ParseProgram()
-
-	if len(parser.errors) > 0 {
-		for _, err := range parser.errors {
-			fmt.Printf("%s\n", err)
-		}
-		return errors.New("paring failed")
-	}
-
-	interpreter := NewInterpreter()
-
-	for name, value := range vars {
-		interpreter.env.SetVariable(name, value)
-	}
-
-	for _, stmt := range program.Statements {
-		if stmt.Type() == TaskDefNode {
-			task := stmt.(*TaskDef)
-			interpreter.env.RegisterTask(task)
-		}
-	}
-
-	_, exists := interpreter.env.GetTask(taskName)
-	if !exists {
-		return fmt.Errorf("task %s not found", taskName)
-	}
 	execStmt := &ExecStatement{TaskName: taskName}
 	_, err := interpreter.evaluateExec(execStmt)
 	return err

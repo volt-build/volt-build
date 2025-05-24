@@ -666,7 +666,7 @@ func (i *Interpreter) Evaluate(node Node) (any, error) {
 	}
 }
 
-func (i *Interpreter) EvaluateWithPrinting(node Node) (any, error) {
+func (i *Interpreter) EvaluateWithoutPrinting(node Node) (any, error) {
 	switch node.Type() {
 	case ProgramNode:
 		return i.evaluateProgram(node.(*Program))

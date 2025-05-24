@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -46,6 +47,54 @@ func (i *Interpreter) evaluateCompile(cmpStmt *CompileStatement) (any, error) {
 		i.env.lastExitCode = 1
 	} else {
 		i.env.lastExitCode = 0
+	}
+
+	return nil, err
+}
+
+func (i *Interpreter) evaluateCompileVerbose(cmpStmt *CompileStatement) (any, error) {
+	fileExpr, err := i.Evaluate(cmpStmt.File)
+	if err != nil {
+		return nil, err
+	}
+
+	fileStr, ok := fileExpr.(string)
+	if !ok {
+		return nil, fmt.Errorf("compile file must be a string, else its not used and throws this error")
+	}
+
+	cmdExpr, err := i.Evaluate(cmpStmt.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	cmdStr, ok := cmdExpr.(string)
+	if !ok {
+		return nil, fmt.Errorf("compile command must be a string")
+	}
+
+	fmt.Printf("compiling: %s; with command: %s\n", cmpStmt.File, cmpStmt.Command)
+	cmd := exec.Command("sh", "-c", cmdStr+" "+fileStr)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// initalize a channel to fill when command is done on seperate goroutine (cuz i like speed)
+	errCh := make(chan error, 1)
+	fmt.Printf("errCh initalized\n")
+
+	// run on seperate goroutine
+	go func() {
+		errCh <- cmd.Run()
+	}()
+	fmt.Printf("errCh filled on different goroutine\n")
+	err = <-errCh
+	fmt.Printf("err: %v\n", err)
+	if err != nil {
+		i.env.lastExitCode = 1
+		fmt.Printf("last exit code resulted in: %d\n", i.env.lastExitCode)
+	} else {
+		i.env.lastExitCode = 0
+		fmt.Printf("last exit code resulted in: %d\n", i.env.lastExitCode)
 	}
 
 	return nil, err
@@ -114,6 +163,28 @@ func (i *Interpreter) evaluateExec(execStmt *ExecStatement) (any, error) {
 	return i.Evaluate(task.Body)
 }
 
+func (i *Interpreter) evaluateExecVerbose(execStmt *ExecStatement) (any, error) {
+	task, exists := i.env.GetTask(execStmt.TaskName)
+	fmt.Printf("found task %s, exists: %s", task, strconv.FormatBool(exists))
+	if !exists {
+		return nil, fmt.Errorf("task %s not found", execStmt.TaskName)
+	}
+
+	for _, depName := range task.Dependencies {
+		dep, exists := i.env.GetTask(depName)
+		if !exists {
+			return nil, fmt.Errorf("task %s doesn't exist", depName)
+		}
+
+		_, err := i.Evaluate(dep.Body)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return i.Evaluate(task.Body)
+}
+
 func (i *Interpreter) evaluateShell(shellStmt *ShellStatement) (any, error) {
 	cmdExpr, err := i.Evaluate(shellStmt.Command)
 	if err != nil {
@@ -138,6 +209,32 @@ func (i *Interpreter) evaluateShell(shellStmt *ShellStatement) (any, error) {
 	return nil, <-errCh
 }
 
+func (i *Interpreter) evaluateShellVerbose(shellStmt *ShellStatement) (any, error) {
+	cmdExpr, err := i.Evaluate(shellStmt.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	cmdStr, ok := cmdExpr.(string)
+	if !ok {
+		return nil, fmt.Errorf("shell command must be a string")
+	}
+
+	cmd := exec.Command("sh", "-c", cmdStr)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// run the command on different goroutine so its atleast a bit parallelized. (cuz its the start)
+	errCh := make(chan error, 1)
+	fmt.Printf("Running command: sh -c %s\n", shellStmt.Command)
+	go func() {
+		errCh <- cmd.Run()
+	}()
+	fmt.Printf("error channel filled\n")
+	fmt.Printf("returning\n")
+	return nil, <-errCh
+}
+
 func (i *Interpreter) evaluatePush(pushStmt *PushStatement) (any, error) {
 	val, err := i.Evaluate(pushStmt.Value)
 	if err != nil {
@@ -148,7 +245,7 @@ func (i *Interpreter) evaluatePush(pushStmt *PushStatement) (any, error) {
 }
 
 func (i *Interpreter) evaluatePushWithoutPrinting(pushStmt *PushStatement) (any, error) {
-	val, err := i.Evaluate(pushStmt.Value)
+	val, err := i.EvaluateWithoutPrinting(pushStmt.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -210,6 +307,50 @@ func (i *Interpreter) evaluateForEach(forEachStmt *ForEachStatement) (any, error
 	return result, nil
 }
 
+func (i *Interpreter) evaluateForEachVerbose(forEachStmt *ForEachStatement) (any, error) {
+	pattern := forEachStmt.Pattern
+	fmt.Printf("foreach statement with %s as pattern\n", pattern)
+	if !strings.HasPrefix(pattern, "\"") && !strings.HasPrefix(pattern, "'") {
+		if val, exists := i.env.GetVariable(pattern); exists {
+			if str, ok := val.(string); ok {
+				fmt.Printf("%s\n", str)
+				pattern = str
+			} else {
+				fmt.Printf("returning error..\n")
+				return nil, fmt.Errorf("foreach pattern must evaluate to a string, got %T", val)
+			}
+		}
+	}
+
+	if strings.HasPrefix(pattern, "\"") && strings.HasSuffix(pattern, "\"") {
+		pattern = pattern[1 : len(pattern)-1]
+	}
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, err
+	}
+	var result any
+
+	oldValue, exists := i.env.GetVariable(forEachStmt.VarName)
+	for _, match := range matches {
+		i.env.SetVariable(forEachStmt.VarName, match)
+
+		result, err = i.Evaluate(forEachStmt.Body)
+		if err != nil {
+			if exists {
+				fmt.Printf("setting variable: %s, to value %T", forEachStmt.VarName, oldValue)
+				i.env.SetVariable(forEachStmt.VarName, oldValue)
+			} else {
+				fmt.Printf("deleting variable: %s\n", forEachStmt.VarName)
+				delete(i.env.variables, forEachStmt.VarName)
+			}
+		}
+	}
+
+	fmt.Printf("returning\n")
+	return result, nil
+}
+
 func (i *Interpreter) evaluateBlock(blockStmt *BlockStatement) (any, error) {
 	var result any
 	var err error
@@ -224,11 +365,36 @@ func (i *Interpreter) evaluateBlock(blockStmt *BlockStatement) (any, error) {
 	return result, nil
 }
 
+func (i *Interpreter) evaluateBlockVerbose(blockStmt *BlockStatement) (any, error) {
+	var result any
+	var err error
+
+	for _, stmt := range blockStmt.Statements {
+		result, err = i.Evaluate(stmt)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Printf("%T\n", result)
+	}
+	fmt.Printf("returning\n")
+	return result, nil
+}
+
 func (i *Interpreter) evaluateIdentifier(ident *Identifier) (any, error) {
 	val, exists := i.env.GetVariable(ident.Value)
 	if !exists {
 		return nil, fmt.Errorf("variable named %s not found bro", ident.Value)
 	}
+	return val, nil
+}
+
+func (i *Interpreter) evaluateIdentifierVerbose(ident *Identifier) (any, error) {
+	fmt.Printf("encoutered identifer, %s\n", ident.String())
+	val, exists := i.env.GetVariable(ident.Value)
+	if !exists {
+		return nil, fmt.Errorf("variable named %s not found bro", ident.Value)
+	}
+	fmt.Printf("returning\n")
 	return val, nil
 }
 
@@ -242,6 +408,21 @@ func (i *Interpreter) evaluateShellExpr(shellExpr *ShellExpr) (any, error) {
 		return val, nil
 	}
 
+	return nil, fmt.Errorf("unknown shell variable $%s", shellExpr.Name)
+}
+
+func (i *Interpreter) evaluateShellExprVerbose(shellExpr *ShellExpr) (any, error) {
+	fmt.Printf("encountered shellExpr, %s\n", shellExpr.String())
+	if shellExpr.Name == "?" {
+		return i.env.lastExitCode, nil
+	}
+
+	// Fallback to actual OS environment
+	if val, ok := os.LookupEnv(shellExpr.Name); ok {
+		return val, nil
+	}
+
+	fmt.Printf("returning\n")
 	return nil, fmt.Errorf("unknown shell variable $%s", shellExpr.Name)
 }
 
@@ -259,5 +440,41 @@ func isTruthy(obj any) bool {
 		return false
 	default:
 		return true
+	}
+}
+
+func (i *Interpreter) EvaluateVerbosely(node Node) (any, error) {
+	switch node.Type() {
+	case ProgramNode:
+		return i.evaluateProgram(node.(*Program))
+	case TaskDefNode:
+		i.env.RegisterTask(node.(*TaskDef))
+		return i.evaluateTaskDef(node.(*TaskDef))
+	case ExecNode:
+		return i.evaluateExecVerbose(node.(*ExecStatement))
+	case ShellNode:
+		return i.evaluateShellVerbose(node.(*ShellStatement))
+	case PushNode:
+		return i.evaluatePush(node.(*PushStatement))
+	case IfNode:
+		return i.evaluateIf(node.(*IfStatement))
+	case ForEachNode:
+		return i.evaluateForEachVerbose(node.(*ForEachStatement))
+	case BlockNode:
+		return i.evaluateBlockVerbose(node.(*BlockStatement))
+	case CompileNode:
+		return i.evaluateCompileVerbose(node.(*CompileStatement))
+	case StringNode:
+		return node.(*StringLiteral).Value, nil
+	case NumberNode:
+		return node.(*NumberLiteral).Value, nil
+	case IdentNode:
+		return i.evaluateIdentifierVerbose(node.(*Identifier))
+	case ShellExprNode:
+		return i.evaluateShellExprVerbose(node.(*ShellExpr))
+	case ConcatNode:
+		return i.evaluateConcat(node.(*ConcatOperation))
+	default:
+		return nil, fmt.Errorf("unknown node type: %s", node.Type())
 	}
 }

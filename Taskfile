@@ -1,8 +1,9 @@
 task build {
-    push "Building... " 
-    shell "go build -o ./target/mini-build"
-    push "Done. Exit code: "
-    push $?
+    foreach "./*.go" gofile {
+        push "testing: " ++ gofile 
+    }
+    compile "." "go build -o target/"
+    push "Building done: exit code: " ++ $? 
 }
 
 exec build 
