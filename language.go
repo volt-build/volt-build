@@ -669,7 +669,7 @@ func (i *Interpreter) Evaluate(node Node) (any, error) {
 func (i *Interpreter) EvaluateWithoutPrinting(node Node) (any, error) {
 	switch node.Type() {
 	case ProgramNode:
-		return i.evaluateProgram(node.(*Program))
+		return i.evaluateProgramWithoutPriting(node.(*Program))
 	case TaskDefNode:
 		i.env.RegisterTask(node.(*TaskDef))
 		return i.evaluateTaskDef(node.(*TaskDef))

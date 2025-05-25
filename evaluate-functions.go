@@ -137,6 +137,35 @@ func (i *Interpreter) evaluateProgram(p *Program) (any, error) {
 	return result, nil
 }
 
+func (i *Interpreter) evaluateProgramWithoutPriting(p *Program) (any, error) {
+	var result any
+	var err error
+
+	for _, stmt := range p.Statements {
+		if stmt.Type() == TaskDefNode {
+			task := stmt.(*TaskDef)
+			i.env.RegisterTask(task)
+		}
+	}
+
+	for _, stmt := range p.Statements {
+		if stmt.Type() == PushNode {
+			push := stmt.(*PushStatement)
+			_, err := i.evaluatePushWithoutPrinting(push)
+			if err != nil {
+				return nil, err
+			}
+		}
+		result, err = i.Evaluate(stmt)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
+	return result, nil
+}
+
 func (i *Interpreter) evaluateTaskDef(task *TaskDef) (any, error) {
 	// Task definitions are handled in first pass.
 	return nil, nil
