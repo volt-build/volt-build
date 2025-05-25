@@ -137,7 +137,7 @@ func (i *Interpreter) evaluateProgram(p *Program) (any, error) {
 	return result, nil
 }
 
-func (i *Interpreter) evaluateProgramWithoutPriting(p *Program) (any, error) {
+func (i *Interpreter) evaluateProgramWithoutPrinting(p *Program) (any, error) {
 	var result any
 	var err error
 
@@ -149,14 +149,7 @@ func (i *Interpreter) evaluateProgramWithoutPriting(p *Program) (any, error) {
 	}
 
 	for _, stmt := range p.Statements {
-		if stmt.Type() == PushNode {
-			push := stmt.(*PushStatement)
-			_, err := i.evaluatePushWithoutPrinting(push)
-			if err != nil {
-				return nil, err
-			}
-		}
-		result, err = i.Evaluate(stmt)
+		result, err = i.EvaluateWithoutPrinting(stmt)
 		if err != nil {
 			return nil, err
 		}
@@ -184,6 +177,27 @@ func (i *Interpreter) evaluateExec(execStmt *ExecStatement) (any, error) {
 		}
 
 		_, err := i.Evaluate(dep.Body)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return i.Evaluate(task.Body)
+}
+
+func (i *Interpreter) evaluateExecWithoutPrinting(execStmt *ExecStatement) (any, error) {
+	task, exists := i.env.GetTask(execStmt.TaskName)
+	if !exists {
+		return nil, fmt.Errorf("task %s not found", execStmt.TaskName)
+	}
+
+	for _, depName := range task.Dependencies {
+		dep, exists := i.env.GetTask(depName)
+		if !exists {
+			return nil, fmt.Errorf("task %s doesn't exist", depName)
+		}
+
+		_, err := i.EvaluateWithoutPrinting(dep.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -324,6 +338,45 @@ func (i *Interpreter) evaluateForEach(forEachStmt *ForEachStatement) (any, error
 		i.env.SetVariable(forEachStmt.VarName, match)
 
 		result, err = i.Evaluate(forEachStmt.Body)
+		if err != nil {
+			if exists {
+				i.env.SetVariable(forEachStmt.VarName, oldValue)
+			} else {
+				delete(i.env.variables, forEachStmt.VarName)
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func (i *Interpreter) evaluateForEachWithoutPrinting(forEachStmt *ForEachStatement) (any, error) {
+	pattern := forEachStmt.Pattern
+
+	if !strings.HasPrefix(pattern, "\"") && !strings.HasPrefix(pattern, "'") {
+		if val, exists := i.env.GetVariable(pattern); exists {
+			if str, ok := val.(string); ok {
+				pattern = str
+			} else {
+				return nil, fmt.Errorf("foreach pattern must evaluate to a string, got %T", val)
+			}
+		}
+	}
+
+	if strings.HasPrefix(pattern, "\"") && strings.HasSuffix(pattern, "\"") {
+		pattern = pattern[1 : len(pattern)-1]
+	}
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, err
+	}
+	var result any
+
+	oldValue, exists := i.env.GetVariable(forEachStmt.VarName)
+	for _, match := range matches {
+		i.env.SetVariable(forEachStmt.VarName, match)
+
+		result, err = i.EvaluateWithoutPrinting(forEachStmt.Body)
 		if err != nil {
 			if exists {
 				i.env.SetVariable(forEachStmt.VarName, oldValue)
