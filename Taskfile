@@ -1,10 +1,8 @@
 task build {
-    foreach "./*.go" gofile {
-        push "testing: " ++ gofile 
-    }
-    push "testing" 
-    compile "." "go build -o target/ "
-    push "Finished with exit code: " ++ $? 
-} 
+    push "Building..." 
+    shell "echo hello"
+    compile "." "go build -o target/" 
+    push "Done, exit code: " ++ $? 
+}
 
-exec build
+exec build 

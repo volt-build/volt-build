@@ -49,6 +49,52 @@ func (i *Interpreter) evaluateCompile(cmpStmt *CompileStatement) (any, error) {
 		i.env.lastExitCode = 0
 	}
 
+	i.env.progressDone++
+	return nil, err
+}
+
+func (i *Interpreter) evaluateCompileWithoutPrinting(cmpStmt *CompileStatement) (any, error) {
+	fileExpr, err := i.EvaluateWithoutPrinting(cmpStmt.File)
+	if err != nil {
+		return nil, err
+	}
+
+	fileStr, ok := fileExpr.(string)
+	if !ok {
+		return nil, fmt.Errorf("compile file must be a string, else its not used and throws this error")
+	}
+
+	cmdExpr, err := i.EvaluateWithoutPrinting(cmpStmt.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	cmdStr, ok := cmdExpr.(string)
+	if !ok {
+		return nil, fmt.Errorf("compile command must be a string")
+	}
+
+	cmd := exec.Command("sh", "-c", cmdStr+" "+fileStr)
+	// Don't redirect stdout/stderr to suppress output
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+
+	// initalize a channel to fill when command is done on seperate goroutine (cuz i like speed)
+	errCh := make(chan error, 1)
+
+	// run on seperate goroutine
+	go func() {
+		errCh <- cmd.Run()
+	}()
+
+	err = <-errCh
+	if err != nil {
+		i.env.lastExitCode = 1
+	} else {
+		i.env.lastExitCode = 0
+	}
+
+	i.env.progressDone++
 	return nil, err
 }
 
@@ -116,6 +162,22 @@ func (i *Interpreter) evaluateConcat(concatOp *ConcatOperation) (any, error) {
 	return leftStr + rightStr, nil
 }
 
+func (i *Interpreter) evaluateConcatWithoutPrinting(concatOp *ConcatOperation) (any, error) {
+	leftVal, err := i.EvaluateWithoutPrinting(concatOp.Left)
+	if err != nil {
+		return nil, err
+	}
+
+	rightVal, err := i.EvaluateWithoutPrinting(concatOp.Right)
+	if err != nil {
+		return nil, err
+	}
+	leftStr := fmt.Sprintf("%v", leftVal)
+	rightStr := fmt.Sprintf("%v", rightVal)
+
+	return leftStr + rightStr, nil
+}
+
 func (i *Interpreter) evaluateProgram(p *Program) (any, error) {
 	var result any
 	var err error
@@ -164,6 +226,11 @@ func (i *Interpreter) evaluateTaskDef(task *TaskDef) (any, error) {
 	return nil, nil
 }
 
+func (i *Interpreter) evaluateTaskDefWithoutPrinting(task *TaskDef) (any, error) {
+	// Task definitions are handled in first pass.
+	return nil, nil
+}
+
 func (i *Interpreter) evaluateExec(execStmt *ExecStatement) (any, error) {
 	task, exists := i.env.GetTask(execStmt.TaskName)
 	if !exists {
@@ -203,7 +270,7 @@ func (i *Interpreter) evaluateExecWithoutPrinting(execStmt *ExecStatement) (any,
 		}
 	}
 
-	return i.Evaluate(task.Body)
+	return i.EvaluateWithoutPrinting(task.Body)
 }
 
 func (i *Interpreter) evaluateExecVerbose(execStmt *ExecStatement) (any, error) {
@@ -249,6 +316,33 @@ func (i *Interpreter) evaluateShell(shellStmt *ShellStatement) (any, error) {
 		errCh <- cmd.Run()
 	}()
 
+	i.env.progressDone++
+	return nil, <-errCh
+}
+
+func (i *Interpreter) evaluateShellWithoutPrinting(shellStmt *ShellStatement) (any, error) {
+	cmdExpr, err := i.EvaluateWithoutPrinting(shellStmt.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	cmdStr, ok := cmdExpr.(string)
+	if !ok {
+		return nil, fmt.Errorf("shell command must be a string")
+	}
+
+	cmd := exec.Command("sh", "-c", cmdStr)
+	// Don't redirect stdout/stderr to suppress output
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+
+	// run the command on different goroutine so its atleast a bit parallelized. (cuz its the start)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- cmd.Run()
+	}()
+
+	i.env.progressDone++
 	return nil, <-errCh
 }
 
@@ -275,6 +369,7 @@ func (i *Interpreter) evaluateShellVerbose(shellStmt *ShellStatement) (any, erro
 	}()
 	fmt.Printf("error channel filled\n")
 	fmt.Printf("returning\n")
+	i.env.progressDone++
 	return nil, <-errCh
 }
 
@@ -297,7 +392,7 @@ func (i *Interpreter) evaluatePushWithoutPrinting(pushStmt *PushStatement) (any,
 }
 
 func (i *Interpreter) evaluateIf(ifStmt *IfStatement) (any, error) {
-	condition, err := i.Evaluate(ifStmt.ThenBlock)
+	condition, err := i.Evaluate(ifStmt.Condition)
 	if err != nil {
 		return nil, err
 	}
@@ -306,6 +401,21 @@ func (i *Interpreter) evaluateIf(ifStmt *IfStatement) (any, error) {
 		return i.Evaluate(ifStmt.ThenBlock)
 	} else if ifStmt.ElseBlock != nil {
 		return i.Evaluate(ifStmt.ElseBlock)
+	}
+
+	return nil, nil
+}
+
+func (i *Interpreter) evaluateIfWithoutPrinting(ifStmt *IfStatement) (any, error) {
+	condition, err := i.EvaluateWithoutPrinting(ifStmt.Condition)
+	if err != nil {
+		return nil, err
+	}
+
+	if isTruthy(condition) {
+		return i.EvaluateWithoutPrinting(ifStmt.ThenBlock)
+	} else if ifStmt.ElseBlock != nil {
+		return i.EvaluateWithoutPrinting(ifStmt.ElseBlock)
 	}
 
 	return nil, nil
@@ -447,6 +557,20 @@ func (i *Interpreter) evaluateBlock(blockStmt *BlockStatement) (any, error) {
 	return result, nil
 }
 
+func (i *Interpreter) evaluateBlockWithoutPrinting(blockStmt *BlockStatement) (any, error) {
+	var result any
+	var err error
+
+	for _, stmt := range blockStmt.Statements {
+		result, err = i.EvaluateWithoutPrinting(stmt)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return result, nil
+}
+
 func (i *Interpreter) evaluateBlockVerbose(blockStmt *BlockStatement) (any, error) {
 	var result any
 	var err error
@@ -470,6 +594,14 @@ func (i *Interpreter) evaluateIdentifier(ident *Identifier) (any, error) {
 	return val, nil
 }
 
+func (i *Interpreter) evaluateIdentifierWithoutPrinting(ident *Identifier) (any, error) {
+	val, exists := i.env.GetVariable(ident.Value)
+	if !exists {
+		return nil, fmt.Errorf("variable named %s not found bro", ident.Value)
+	}
+	return val, nil
+}
+
 func (i *Interpreter) evaluateIdentifierVerbose(ident *Identifier) (any, error) {
 	fmt.Printf("encoutered identifer, %s\n", ident.String())
 	val, exists := i.env.GetVariable(ident.Value)
@@ -481,6 +613,19 @@ func (i *Interpreter) evaluateIdentifierVerbose(ident *Identifier) (any, error) 
 }
 
 func (i *Interpreter) evaluateShellExpr(shellExpr *ShellExpr) (any, error) {
+	if shellExpr.Name == "?" {
+		return i.env.lastExitCode, nil
+	}
+
+	// Fallback to actual OS environment
+	if val, ok := os.LookupEnv(shellExpr.Name); ok {
+		return val, nil
+	}
+
+	return nil, fmt.Errorf("unknown shell variable $%s", shellExpr.Name)
+}
+
+func (i *Interpreter) evaluateShellExprWithoutPrinting(shellExpr *ShellExpr) (any, error) {
 	if shellExpr.Name == "?" {
 		return i.env.lastExitCode, nil
 	}
@@ -522,6 +667,42 @@ func isTruthy(obj any) bool {
 		return false
 	default:
 		return true
+	}
+}
+
+func (i *Interpreter) EvaluateWithoutPrinting(node Node) (any, error) {
+	switch node.Type() {
+	case ProgramNode:
+		return i.evaluateProgramWithoutPrinting(node.(*Program))
+	case TaskDefNode:
+		i.env.RegisterTask(node.(*TaskDef))
+		return i.evaluateTaskDefWithoutPrinting(node.(*TaskDef))
+	case ExecNode:
+		return i.evaluateExecWithoutPrinting(node.(*ExecStatement))
+	case ShellNode:
+		return i.evaluateShellWithoutPrinting(node.(*ShellStatement))
+	case PushNode:
+		return i.evaluatePushWithoutPrinting(node.(*PushStatement))
+	case IfNode:
+		return i.evaluateIfWithoutPrinting(node.(*IfStatement))
+	case ForEachNode:
+		return i.evaluateForEachWithoutPrinting(node.(*ForEachStatement))
+	case BlockNode:
+		return i.evaluateBlockWithoutPrinting(node.(*BlockStatement))
+	case CompileNode:
+		return i.evaluateCompileWithoutPrinting(node.(*CompileStatement))
+	case StringNode:
+		return node.(*StringLiteral).Value, nil
+	case NumberNode:
+		return node.(*NumberLiteral).Value, nil
+	case IdentNode:
+		return i.evaluateIdentifierWithoutPrinting(node.(*Identifier))
+	case ShellExprNode:
+		return i.evaluateShellExprWithoutPrinting(node.(*ShellExpr))
+	case ConcatNode:
+		return i.evaluateConcatWithoutPrinting(node.(*ConcatOperation))
+	default:
+		return nil, fmt.Errorf("unknown node type: %s", node.Type())
 	}
 }
 

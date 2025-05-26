@@ -584,10 +584,13 @@ func (p *Parser) parseExpression() Node {
 	return left
 }
 
+// TODO: add progress feedback
 type Environment struct {
-	variables    map[string]any
-	tasks        map[string]*TaskDef
-	lastExitCode int // store $? value in this
+	variables     map[string]any      // variables inside the script
+	tasks         map[string]*TaskDef // tasks to be executed
+	progressDone  int                 // increment after all the compile/shell statements
+	progressTotal int                 // total needed to be done
+	lastExitCode  int                 // store $? value in this
 }
 
 func NewEnvironment() *Environment {
@@ -633,6 +636,7 @@ func (i *Interpreter) GetTasks() map[string]*TaskDef {
 func (i *Interpreter) Evaluate(node Node) (any, error) {
 	switch node.Type() {
 	case ProgramNode:
+		i.preprocessEvaluateProgram(node.(*Program)) // add all heavy tasks to list
 		return i.evaluateProgram(node.(*Program))
 	case TaskDefNode:
 		i.env.RegisterTask(node.(*TaskDef))
@@ -640,6 +644,7 @@ func (i *Interpreter) Evaluate(node Node) (any, error) {
 	case ExecNode:
 		return i.evaluateExec(node.(*ExecStatement))
 	case ShellNode:
+		fmt.Printf("[%d/%d] STATUS: evaluating shell\n", i.env.progressDone+1, i.env.progressTotal)
 		return i.evaluateShell(node.(*ShellStatement))
 	case PushNode:
 		return i.evaluatePush(node.(*PushStatement))
@@ -650,6 +655,7 @@ func (i *Interpreter) Evaluate(node Node) (any, error) {
 	case BlockNode:
 		return i.evaluateBlock(node.(*BlockStatement))
 	case CompileNode:
+		fmt.Printf("[%d/%d] STATUS: evaluating compilation\n", i.env.progressDone+1, i.env.progressTotal)
 		return i.evaluateCompile(node.(*CompileStatement))
 	case StringNode:
 		return node.(*StringLiteral).Value, nil
@@ -666,38 +672,45 @@ func (i *Interpreter) Evaluate(node Node) (any, error) {
 	}
 }
 
-func (i *Interpreter) EvaluateWithoutPrinting(node Node) (any, error) {
+func (i *Interpreter) preprocessEvaluateProgram(p *Program) (any, error) {
+	i.env.progressTotal = 0 // Reset counter
+	i.countExecutableStatements(p)
+	return nil, nil
+}
+
+func (i *Interpreter) countExecutableStatements(node Node) {
 	switch node.Type() {
 	case ProgramNode:
-		return i.evaluateProgramWithoutPrinting(node.(*Program))
+		program := node.(*Program)
+		for _, stmt := range program.Statements {
+			i.countExecutableStatements(stmt)
+		}
 	case TaskDefNode:
-		i.env.RegisterTask(node.(*TaskDef))
-		return i.evaluateTaskDef(node.(*TaskDef))
-	case ExecNode:
-		return i.evaluateExec(node.(*ExecStatement))
-	case ShellNode:
-		return i.evaluateShell(node.(*ShellStatement))
-	case PushNode:
-		return i.evaluatePushWithoutPrinting(node.(*PushStatement))
-	case IfNode:
-		return i.evaluateIf(node.(*IfStatement))
-	case ForEachNode:
-		return i.evaluateForEach(node.(*ForEachStatement))
+		task := node.(*TaskDef)
+		i.countExecutableStatements(task.Body)
 	case BlockNode:
-		return i.evaluateBlock(node.(*BlockStatement))
+		block := node.(*BlockStatement)
+		for _, stmt := range block.Statements {
+			i.countExecutableStatements(stmt)
+		}
 	case CompileNode:
-		return i.evaluateCompile(node.(*CompileStatement))
-	case StringNode:
-		return node.(*StringLiteral).Value, nil
-	case NumberNode:
-		return node.(*NumberLiteral).Value, nil
-	case IdentNode:
-		return i.evaluateIdentifier(node.(*Identifier))
-	case ShellExprNode:
-		return i.evaluateShellExpr(node.(*ShellExpr))
-	case ConcatNode:
-		return i.evaluateConcat(node.(*ConcatOperation))
+		i.env.progressTotal++
+	case ShellNode:
+		i.env.progressTotal++
+	case IfNode:
+		ifStmt := node.(*IfStatement)
+		i.countExecutableStatements(ifStmt.ThenBlock)
+		if ifStmt.ElseBlock != nil {
+			i.countExecutableStatements(ifStmt.ElseBlock)
+		}
+	case ForEachNode:
+		forEach := node.(*ForEachStatement)
+		i.countExecutableStatements(forEach.Body)
+	case ExecNode:
+		exec := node.(*ExecStatement)
+		if task, exists := i.env.GetTask(exec.TaskName); exists {
+			i.countExecutableStatements(task.Body)
+		}
 	default:
-		return nil, fmt.Errorf("unknown node type: %s", node.Type())
 	}
 }

@@ -15,36 +15,33 @@ func main() {
 
 	if *version {
 		fmt.Printf("mini-build: version 0.1.0\n")
-		os.Exit(0)
 	}
-
-	var path string
-	if flag.NArg() == 0 {
-		path = "./Taskfile"
-	} else if flag.NArg() == 1 {
-		path = flag.Arg(0) + "/Taskfile"
-	} else {
-		fmt.Printf("Cannot have more than one positional argument\n")
-		flag.Usage()
-		os.Exit(1)
-	}
-
 	if *silent && *verbose {
-		fmt.Printf("Cannot mix `silent` and `verbose` flags.\n")
-		os.Exit(1)
+		fmt.Printf("Can't mix those flags\n")
+		return
 	}
-
-	input, err := os.ReadFile(path)
-	if err != nil {
-		fmt.Printf("error: %v\n", err)
-		os.Exit(1)
-	}
-
 	if *silent {
+		input, err := os.ReadFile("./Taskfile")
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			return
+		}
 		RunTaskScript(string(input), EvalSilent)
-	} else if *verbose {
+	}
+	if *verbose {
+		input, err := os.ReadFile("./Taskfile")
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			return
+		}
 		RunTaskScript(string(input), EvalVerbose)
-	} else {
+	}
+	if !*verbose && !*silent {
+		input, err := os.ReadFile("./Taskfile")
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			return
+		}
 		RunTaskScript(string(input), EvalRegular)
 	}
 }

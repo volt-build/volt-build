@@ -87,3 +87,20 @@ func RunSingleTask(input string, taskName string) error {
 	_, err := interpreter.evaluateExec(execStmt)
 	return err
 }
+
+func RunTaskScriptWithStatus(input string /* mode EvalMode // not yet supported */) error {
+	lexer := NewLexer(input)
+	parser := NewParser(lexer)
+	progrem := parser.ParseProgram()
+
+	if len(parser.errors) > 0 {
+		for _, i := range parser.errors {
+			fmt.Printf("%s\n", i)
+		}
+		return errors.New("parsing failed")
+	}
+
+	interpreter := NewInterpreter()
+	_, err := interpreter.Evaluate(progrem)
+	return err
+}
