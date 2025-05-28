@@ -9,7 +9,7 @@
 - [ ] hook up more of the helpers to flags 
 - [ ] more sensible command defaults.
 - [ ] fix assignmet nodes 
-- [ ] Update the really old styled flake
+- [x] Update the really old styled flake
 - [ ] Good status like ninja, or makefiles 
 
 
