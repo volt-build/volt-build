@@ -1,3 +1,4 @@
+# TODO: Update this really old styled flake
 {
   # fixed the wrong desc 
   description = "Go dev shell for direnv";

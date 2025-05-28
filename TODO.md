@@ -9,6 +9,7 @@
 - [ ] hook up more of the helpers to flags 
 - [ ] more sensible command defaults.
 - [ ] fix assignmet nodes 
+- [ ] Update the really old styled flake
 
 
 #### QoL additions that can wait a bit. 
