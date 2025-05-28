@@ -1,8 +1,7 @@
 task build {
-    push "Building..." 
-    shell "echo hello"
+    push "Building.." 
     compile "." "go build -o target/" 
-    push "Done, exit code: " ++ $? 
-}
+    push "Done with exit code: " ++ $? 
+} 
 
 exec build 

@@ -58,7 +58,7 @@ func RunTaskScript(input string, mode EvalMode) error {
 
 // here, input is the whole file and taskName is the name of the task to be run without variables
 // Run a single task with this function for flags/position arguments;
-func RunSingleTask(input string, taskName string) error {
+func RunSingleTask(input string, taskName string, mode EvalMode) error {
 	lexer := NewLexer(input)
 	parser := NewParser(lexer)
 	program := parser.ParseProgram()
@@ -84,7 +84,15 @@ func RunSingleTask(input string, taskName string) error {
 	}
 
 	execStmt := &ExecStatement{TaskName: taskName}
-	_, err := interpreter.evaluateExec(execStmt)
+	var err error
+	switch mode {
+	case EvalSilent:
+		_, err = interpreter.evaluateExecWithoutPrinting(execStmt) // works
+	case EvalVerbose:
+		_, err = interpreter.evaluateExecVerbose(execStmt) // FIXME: Verbose mode;
+	case EvalRegular:
+		_, err = interpreter.evaluateExec(execStmt) // works
+	}
 	return err
 }
 
