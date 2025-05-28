@@ -636,7 +636,7 @@ func (i *Interpreter) GetTasks() map[string]*TaskDef {
 func (i *Interpreter) Evaluate(node Node) (any, error) {
 	switch node.Type() {
 	case ProgramNode:
-		i.preprocessEvaluateProgram(node.(*Program)) // add all heavy tasks to list
+		i.preprocessEvaluateProgram(node.(*Program)) // increment counters for status.
 		return i.evaluateProgram(node.(*Program))
 	case TaskDefNode:
 		i.env.RegisterTask(node.(*TaskDef))
@@ -644,7 +644,6 @@ func (i *Interpreter) Evaluate(node Node) (any, error) {
 	case ExecNode:
 		return i.evaluateExec(node.(*ExecStatement))
 	case ShellNode:
-		fmt.Printf("[%d/%d] STATUS: evaluating shell\n", i.env.progressDone+1, i.env.progressTotal)
 		return i.evaluateShell(node.(*ShellStatement))
 	case PushNode:
 		return i.evaluatePush(node.(*PushStatement))
@@ -655,7 +654,6 @@ func (i *Interpreter) Evaluate(node Node) (any, error) {
 	case BlockNode:
 		return i.evaluateBlock(node.(*BlockStatement))
 	case CompileNode:
-		fmt.Printf("[%d/%d] STATUS: evaluating compilation\n", i.env.progressDone+1, i.env.progressTotal)
 		return i.evaluateCompile(node.(*CompileStatement))
 	case StringNode:
 		return node.(*StringLiteral).Value, nil
@@ -672,10 +670,9 @@ func (i *Interpreter) Evaluate(node Node) (any, error) {
 	}
 }
 
-func (i *Interpreter) preprocessEvaluateProgram(p *Program) (any, error) {
+func (i *Interpreter) preprocessEvaluateProgram(p *Program) {
 	i.env.progressTotal = 0 // Reset counter
 	i.countExecutableStatements(p)
-	return nil, nil
 }
 
 func (i *Interpreter) countExecutableStatements(node Node) {

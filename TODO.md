@@ -10,6 +10,7 @@
 - [ ] more sensible command defaults.
 - [ ] fix assignmet nodes 
 - [ ] Update the really old styled flake
+- [ ] Good status like ninja, or makefiles 
 
 
 #### QoL additions that can wait a bit. 
