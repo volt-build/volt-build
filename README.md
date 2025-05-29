@@ -1,36 +1,48 @@
-# mini-build
+<h1 align="center"> mini-build </h1> 
+<small>A build system I wrote because run-tasks.sh was too effort</small> 
 
-Its a small build system I wrote myself. 
+<h3 align="left">A few examples on usage</h1>
 
-### Writing build files
-
-- Syntax: 
-
+- A task to format a directory with go files: 
 ```task
-
-task build {
-    # this is a comment 
-    shell "# command to execute with sh -c over here" 
-    foreach "./*.go" { 
-        push "found a go file" 
+# Task declaration:
+#     ┌─▶ 'fmt' is the name of the task
+task fmt {
+    # foreach loop:
+    #        ┌─▶ glob pattern
+    #        │        ┌─▶ loop variable (each matched file)
+    foreach "./*.go" gofile {
+        # shell command:
+        #       ┌─────────────▶ command
+        #       │        ┌───────▶ concatenation operator
+        #       │        │    ┌──▶ variable reference
+        shell "gofmt -w" ++ gofile
     }
-    push "Something to print out stdout" 
 }
-
-exec build  # make sure to execute the task at the end. 
 ```
 
-- another example: 
+- A task to lint a directory with go files: 
 ```task 
-task build {
-    foeaach "*.c" cfile {
-        push cfile ++ " c file" 
-    }
-} 
-
+task lint {
+    push "Linting..." 
+    shell "golang-ci run ./..." 
+    push "Done with exit code: " ++ $? 
+}
 ```
-- Is it fast?
 
-    Latest build on my machine: 11.52 seconds
-
--# if any older commits than this are unverified they're real, if they're not verified after this commit, they're fake; 
+- A task to build c files from `src/`: 
+``` 
+task buildc {
+    output_dir = "bin" # example 
+    shell "mkdir " ++ bin # make sure it exists 
+    cc = "your-compiler" 
+    flags "-flags -for -your -compiler" 
+    foreach "./src/*.c" cfile {
+        cfile_with_o = cfile ++ ".o" 
+        # a little cursed but it works pretty good: 
+        ##      (             ONE VARIABLE              ) (var2) 
+        compile cc ++ flags ++ " -o obj/" ++ cfile_with_o  cfile
+        compile cc ++ " obj/*" ++ " -o " ++ output_dir
+    }
+}
+```
