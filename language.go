@@ -665,9 +665,19 @@ func (i *Interpreter) Evaluate(node Node) (any, error) {
 		return i.evaluateShellExpr(node.(*ShellExpr))
 	case ConcatNode:
 		return i.evaluateConcat(node.(*ConcatOperation))
+	case AssignmentNode:
+		return i.evaluateAssign(node.(*AssignmentStatement))
 	default:
 		return nil, fmt.Errorf("unknown node type: %s", node.Type())
 	}
+}
+func (i *Interpreter) evaluateAssign(assignStmt *AssignmentStatement) (any, error) {
+	result, err := i.Evaluate(assignStmt.Value)
+	if err != nil {
+		return nil, err
+	}
+	i.env.SetVariable(assignStmt.Name, result)
+	return result, nil
 }
 
 func (i *Interpreter) preprocessEvaluateProgram(p *Program) {

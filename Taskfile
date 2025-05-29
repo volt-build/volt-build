@@ -12,3 +12,11 @@ task fmt {
     }
     push "Done with exit code: "  ++ $? 
 }
+
+task termlint {
+    push "Linting code" 
+    shell "golangci-lint run ./..." 
+    push "Done with exit code: "  ++ $? 
+}
+
+exec build # only build when run without any flags

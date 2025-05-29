@@ -1,11 +1,5 @@
 package main
 
-// Does the job though.
-
-import (
-	"fmt"
-)
-
 type TokenType int
 
 const (
@@ -353,46 +347,4 @@ func (l *Lexer) readString(quote rune) string {
 	result := l.input[position:l.position]
 	l.readChar()
 	return result
-}
-
-func Test() {
-	input := `
-# Define a build task
-task build {
-    push "Building project..."
-    shell "go build -o app main.go"
-    
-    # Check if build was successful
-    if $? == 0 {
-        push "Build successful"
-    } else {
-        push "Build failed"
-        push $?  # Push the error code
-    }
-}
-
-task test requires build {
-    push "Running tests..."
-    foreach *.test.go {
-        shell "go test $_"
-        if == 0 {
-            push "Test passed: $_"
-        } else {
-            push "Test failed: $_"
-        }
-    }
-}
-
-# Run a specific task
-exec build
-`
-	l := NewLexer(input)
-	for {
-		tok := l.NextToken()
-		fmt.Printf("%+v\n", tok)
-
-		if tok.Type == EOF {
-			break
-		}
-	}
 }

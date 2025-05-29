@@ -13,6 +13,7 @@
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
+      lib = pkgs.lib;
     in {
       devShells.default = pkgs.mkShell {
         packages = [
@@ -27,6 +28,13 @@
         version = "0.1.0";
         src = ./.;
         vendorHash = null;
+
+        meta = {
+          description = "A small build system to make running repetitive tasks easier without polluting PATH or making it hard to run commands with scripts."; 
+          license = lib.licenses.mit; 
+          maintainers = [ ];
+          platforms = lib.platforms.unix; 
+        }; 
       };
       formatter = pkgs.alejandra;
     });

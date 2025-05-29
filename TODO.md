@@ -8,7 +8,7 @@
 - [x] command flags // probably includes the next one too. (for now, needs testing) 
 - [ ] hook up more of the helpers to flags 
 - [ ] more sensible command defaults.
-- [ ] fix assignmet nodes 
+- [X] fix assignmet nodes  -- In most attention right now
 - [x] Update the really old styled flake
 - [ ] Good status like ninja, or makefiles 
 
