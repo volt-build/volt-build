@@ -5,7 +5,7 @@ task build {
 } 
 
 task fmt {
-    push "Formatting" 
+    push "starting formatting.... "
     foreach "./*.go" gofile {
         push "Formatting: " ++ gofile 
         shell "gofmt -w " ++ gofile 
