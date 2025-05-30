@@ -1,5 +1,5 @@
 <h1 align="center"> mini-build </h1> 
-<small>A build system I wrote because run-tasks.sh was too effort</small> 
+<small>A build system I wrote because run-tasks.sh was too much effort</small> 
 
 <h3 align="left">A few examples on usage</h1>
 
