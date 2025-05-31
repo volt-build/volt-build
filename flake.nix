@@ -21,6 +21,7 @@
           pkgs.golangci-lint
           pkgs.go-tools
           pkgs.gopls
+          pkgs.delve
         ];
       };
       packages.default = pkgs.buildGoModule {

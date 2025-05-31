@@ -1,6 +1,6 @@
 ## TODO.md
 
-#### Stuff I need to do.  
+#### Stuff that needs to be done (feel free to open a pr/issue): 
 
 - [ ] task depencies (other tasks) 
 - [ ] Verbose mode 
@@ -9,6 +9,7 @@
 - [ ] CI/CD actions
 - [ ] Good status like ninja, or makefiles 
 - [ ] Actually good asynchronous and non-blocking tasks where i don't just block until its done -- Implementing
+- [ ] Use a mutex to sync when using `compile` 
 
 # Finished todos: 
 - [x] command flags // probably includes the next one too. (for now, needs testing) 

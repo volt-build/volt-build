@@ -5,7 +5,7 @@ task build {
 } 
 
 task fmt {
-    push "starting formatting.... "
+    push "starting formatting.... " 
     foreach "./*.go" gofile {
         push "Formatting: " ++ gofile 
         shell "gofmt -w " ++ gofile 
@@ -17,4 +17,14 @@ task termlint {
     push "Linting code" 
     shell "golangci-lint run ./..." 
     push "Done with exit code: "  ++ $? 
+}
+
+task test {
+    compile "." "ls -l" 
+}
+
+task debugBuild {
+    push "Building With Debug" 
+    compile "." "go build -gcflags='all=-N -l' -o target/debug" 
+    push "Done with exit code: " ++ $? 
 }

@@ -36,8 +36,9 @@ func (i *Interpreter) spawnCompile(cmpStmt *CompileStatement) (any, error) {
 			resCh <- result{nil, fmt.Errorf("compile file must evaluate to a string")}
 			return
 		}
-		if fileStr == "." || fileStr == ". " || fileStr == " . " {
-			fileStr = os.Getenv("_MINI_BUILD_CW_DIRECTORY")
+		absolutePath, err := filepath.Abs(fileStr)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
 		}
 		cmdExpr, err := i.Evaluate(cmpStmt.Command)
 		if err != nil {
@@ -49,7 +50,8 @@ func (i *Interpreter) spawnCompile(cmpStmt *CompileStatement) (any, error) {
 			resCh <- result{nil, fmt.Errorf("compile command must evaluate to a string")}
 			return
 		}
-		cmd := exec.Command("sh", "-c", cmdStr+" "+fileStr)
+
+		cmd := exec.Command("sh", "-c", cmdStr+" "+absolutePath)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
