@@ -9,7 +9,7 @@
 - [ ] CI/CD actions
 - [ ] Good status like ninja, or makefiles 
 - [ ] Actually good asynchronous and non-blocking tasks where i don't just block until its done -- Implementing
-- [ ] Use a mutex to sync when using `compile` 
+- [ ] Use a mutex to sync when using `compile` to set enviorment variable(s) before execution in sync without racing them
 
 # Finished todos: 
 - [x] command flags // probably includes the next one too. (for now, needs testing) 
