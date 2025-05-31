@@ -7,50 +7,64 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 )
 
-func (i *Interpreter) evaluateCompile(cmpStmt *CompileStatement) (any, error) {
-	fileExpr, err := i.Evaluate(cmpStmt.File)
-	if err != nil {
-		return nil, err
+// NOTE: possibly will be increasing GOMAXPROCS
+
+// `spawnCompile` is the name of this compile evaluation function because it uses workgroups and stuff
+// with concurrency, so it runs on another OS thread
+func (i *Interpreter) spawnCompile(cmpStmt *CompileStatement) (any, error) {
+	type result struct {
+		val any
+		err error
 	}
+	resCh := make(chan result, 1)
+	var wg sync.WaitGroup
+	wg.Add(1)
 
-	fileStr, ok := fileExpr.(string)
-	if !ok {
-		return nil, fmt.Errorf("compile file must be a string, else its not used and throws this error")
-	}
-
-	cmdExpr, err := i.Evaluate(cmpStmt.Command)
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStr, ok := cmdExpr.(string)
-	if !ok {
-		return nil, fmt.Errorf("compile command must be a string")
-	}
-
-	cmd := exec.Command("sh", "-c", cmdStr+" "+fileStr)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	// initalize a channel to fill when command is done on seperate goroutine (cuz i like speed)
-	errCh := make(chan error, 1)
-
-	// run on seperate goroutine
 	go func() {
-		errCh <- cmd.Run()
+		defer wg.Done()
+
+		fileExpr, err := i.Evaluate(cmpStmt.File)
+		if err != nil {
+			resCh <- result{nil, err}
+			return
+		}
+		fileStr, ok := fileExpr.(string)
+		if !ok {
+			resCh <- result{nil, fmt.Errorf("compile file must evaluate to a string")}
+			return
+		}
+		if fileStr == "." || fileStr == ". " || fileStr == " . " {
+			fileStr = os.Getenv("_MINI_BUILD_CW_DIRECTORY")
+		}
+		cmdExpr, err := i.Evaluate(cmpStmt.Command)
+		if err != nil {
+			resCh <- result{nil, err}
+			return
+		}
+		cmdStr, ok := cmdExpr.(string)
+		if !ok {
+			resCh <- result{nil, fmt.Errorf("compile command must evaluate to a string")}
+			return
+		}
+		cmd := exec.Command("sh", "-c", cmdStr+" "+fileStr)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		err = cmd.Run()
+		if err != nil {
+			i.env.lastExitCode = 1
+		} else {
+			i.env.lastExitCode = 0
+		}
+		i.env.progressDone++
+		resCh <- result{nil, err}
 	}()
-
-	err = <-errCh
-	if err != nil {
-		i.env.lastExitCode = 1
-	} else {
-		i.env.lastExitCode = 0
-	}
-
-	i.env.progressDone++
-	return nil, err
+	wg.Wait()
+	res := <-resCh
+	return res.val, res.err
 }
 
 func (i *Interpreter) evaluateCompileWithoutPrinting(cmpStmt *CompileStatement) (any, error) {

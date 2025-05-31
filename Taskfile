@@ -18,5 +18,3 @@ task termlint {
     shell "golangci-lint run ./..." 
     push "Done with exit code: "  ++ $? 
 }
-
-exec build # only build when run without any flags

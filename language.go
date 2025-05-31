@@ -654,7 +654,7 @@ func (i *Interpreter) Evaluate(node Node) (any, error) {
 	case BlockNode:
 		return i.evaluateBlock(node.(*BlockStatement))
 	case CompileNode:
-		return i.evaluateCompile(node.(*CompileStatement))
+		return i.spawnCompile(node.(*CompileStatement))
 	case StringNode:
 		return node.(*StringLiteral).Value, nil
 	case NumberNode:

@@ -2,30 +2,23 @@
 
 #### Stuff I need to do.  
 
-- [x] Lexer 
-- [x] Language basics 
-### [ ] DOCS!!!
+- [ ] task depencies (other tasks) 
+- [ ] Verbose mode 
+- [ ] Good Docs 
+- [ ] Treesitter parser
+- [ ] CI/CD actions
+- [ ] Good status like ninja, or makefiles 
+- [ ] Actually good asynchronous and non-blocking tasks where i don't just block until its done -- Implementing
+
+# Finished todos: 
 - [x] command flags // probably includes the next one too. (for now, needs testing) 
-- [ ] hook up more of the helpers to flags 
-- [ ] more sensible command defaults.
+- [x] Language basics 
+- [x] Lexer 
 - [X] fix assignmet nodes  -- In most attention right now
 - [x] Update the really old styled flake
-- [ ] Good status like ninja, or makefiles 
-
-
-#### QoL additions that can wait a bit. 
-
-- [x] Make it run on different goroutines (probably makes it faster, I think, makes me feel better atleast) 
-explaination: 
-    it spins up a goroutine every time a shell command is executed, well i dont expect people to be using
-    small shell commands so fair thing, everything else which would already be in shell is builtin
-    to the language.
 
 # Fetch keyword 
 how it should work: 
     fetch stuff from a code hosting place 
-
-> which code hosting place? 
-> should be able to mention in the fetch argument. 
-
-
+- Why:
+    because I don't like C's dependency management options (vcpkg, conan) 

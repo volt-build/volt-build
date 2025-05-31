@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+// TODO:  Path as $0
 func main() {
 	silent := flag.Bool("silent", false, "Enable silent mode")
 	verbose := flag.Bool("verbose", false, "Enable verbose mode")
@@ -25,40 +26,83 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Determine evaluation mode
-	var mode EvalMode
-	switch {
-	case *silent:
-		mode = EvalSilent
-	case *verbose:
-		mode = EvalVerbose
-	default:
-		mode = EvalRegular
-	}
-
-	// Handle single task if specified
-	if *singleTask != "" {
-		input, err := os.ReadFile("./Taskfile")
-		if err != nil {
-			fmt.Printf("Error: %v\n", err)
+	if flag.NArg() == 0 {
+		// Determine evaluation mode
+		var mode EvalMode
+		switch {
+		case *silent:
+			mode = EvalSilent
+		case *verbose:
+			mode = EvalVerbose
+		default:
+			mode = EvalRegular
 		}
-		err = RunSingleTask(string(input), *singleTask, mode)
+
+		// Handle single task if specified
+		if *singleTask != "" {
+			input, err := os.ReadFile("./Taskfile")
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+			}
+			err = RunSingleTask(string(input), *singleTask, mode)
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+
+		// Handle full taskfile
+		content, err := os.ReadFile("./Taskfile")
 		if err != nil {
+			fmt.Printf("Error reading Taskfile: %v\n", err)
+			os.Exit(1)
+		}
+
+		if err := RunTaskScript(string(content), mode); err != nil {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
 		}
-		return
-	}
+	} else {
+		path := flag.Arg(0)
+		err := os.Setenv("_MINI_BUILD_CW_DIRECTORY", path)
+		if err != nil {
+			fmt.Printf("Error, could not set '_MINI_BUILD_CW_DIRECTORY', Complete Go error: %v\n", err)
+		}
+		var mode EvalMode
+		switch {
+		case *silent:
+			mode = EvalSilent
+		case *verbose:
+			mode = EvalVerbose
+		default:
+			mode = EvalRegular
+		}
 
-	// Handle full taskfile
-	content, err := os.ReadFile("./Taskfile")
-	if err != nil {
-		fmt.Printf("Error reading Taskfile: %v\n", err)
-		os.Exit(1)
-	}
+		// Handle single task if specified
+		if *singleTask != "" {
+			input, err := os.ReadFile(path + "/Taskfile")
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+			}
+			err = RunSingleTask(string(input), *singleTask, mode)
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
 
-	if err := RunTaskScript(string(content), mode); err != nil {
-		fmt.Printf("Error: %v\n", err)
-		os.Exit(1)
+		// Handle full taskfile
+		content, err := os.ReadFile(path + "/Taskfile")
+		if err != nil {
+			fmt.Printf("Error reading Taskfile: %v\n", err)
+			os.Exit(1)
+		}
+
+		if err := RunTaskScript(string(content), mode); err != nil {
+			fmt.Printf("Error: %v\n", err)
+			os.Exit(1)
+		}
 	}
 }
