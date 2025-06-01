@@ -31,11 +31,11 @@
         vendorHash = null;
 
         meta = {
-          description = "A small build system to make running repetitive tasks easier without polluting PATH or making it hard to run commands with scripts."; 
-          license = lib.licenses.mit; 
-          maintainers = [ ];
-          platforms = lib.platforms.unix; 
-        }; 
+          description = "A small build system to make running repetitive tasks easier without polluting PATH or making it hard to run commands with scripts.";
+          license = lib.licenses.mit;
+          maintainers = [];
+          platforms = lib.platforms.unix;
+        };
       };
       formatter = pkgs.alejandra;
     });
