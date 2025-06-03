@@ -19,9 +19,10 @@
         packages = [
           pkgs.go
           pkgs.golangci-lint
-          pkgs.go-tools
+          pkgs.gotools
           pkgs.gopls
           pkgs.delve
+					pkgs.gofumpt
         ];
       };
       packages.default = pkgs.buildGoModule {
