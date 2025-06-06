@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	l "github.com/randomdude16671/mini-build/language"
 )
 
 func main() {
@@ -26,14 +28,14 @@ func main() {
 
 	if flag.NArg() == 0 {
 		// Determine evaluation mode
-		var mode EvalMode
+		var mode l.EvalMode
 		switch {
 		case *silent:
-			mode = EvalSilent
+			mode = l.EvalSilent
 		case *verbose:
-			mode = EvalVerbose
+			mode = l.EvalVerbose
 		default:
-			mode = EvalRegular
+			mode = l.EvalRegular
 		}
 
 		// Handle single task if specified
@@ -42,7 +44,7 @@ func main() {
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 			}
-			err = RunSingleTask(string(input), *singleTask, mode)
+			err = l.RunSingleTask(string(input), *singleTask, mode)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
@@ -57,20 +59,20 @@ func main() {
 			os.Exit(1)
 		}
 
-		if err := RunTaskScript(string(content), mode); err != nil {
+		if err := l.RunTaskScript(string(content), mode); err != nil {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
 		}
 	} else {
 		path := flag.Arg(0)
-		var mode EvalMode
+		var mode l.EvalMode
 		switch {
 		case *silent:
-			mode = EvalSilent
+			mode = l.EvalSilent
 		case *verbose:
-			mode = EvalVerbose
+			mode = l.EvalVerbose
 		default:
-			mode = EvalRegular
+			mode = l.EvalRegular
 		}
 
 		// Handle single task if specified
@@ -79,7 +81,7 @@ func main() {
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 			}
-			err = RunSingleTask(string(input), *singleTask, mode)
+			err = l.RunSingleTask(string(input), *singleTask, mode)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
@@ -94,7 +96,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		if err := RunTaskScript(string(content), mode); err != nil {
+		if err := l.RunTaskScript(string(content), mode); err != nil {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
 		}

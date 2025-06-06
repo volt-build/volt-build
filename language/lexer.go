@@ -1,4 +1,4 @@
-package main
+package language
 
 type TokenType int
 

@@ -1,4 +1,4 @@
-package main
+package language
 
 // another long file. Probably longer than the lexer.
 // This file contains the AST
@@ -671,6 +671,7 @@ func (i *Interpreter) Evaluate(node Node) (any, error) {
 		return nil, fmt.Errorf("unknown node type: %s", node.Type())
 	}
 }
+
 func (i *Interpreter) evaluateAssign(assignStmt *AssignmentStatement) (any, error) {
 	result, err := i.Evaluate(assignStmt.Value)
 	if err != nil {
