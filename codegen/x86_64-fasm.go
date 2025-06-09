@@ -9,33 +9,33 @@ import (
 	l "github.com/randomdude16671/mini-build/language"
 )
 
-type NASM_GenerationEnv struct {
+type FASM_GenerationEnv struct {
 	evalMode l.EvalMode            // the evaluation mode to compile to
 	tasks    map[string]*l.TaskDef // { "name": TaskDef }
 	Program  l.Program             // Program to parse  and compile into IR
 }
 
-type NASM_Generator struct {
+type FASM_Generator struct {
 	output       *strings.Builder
 	file         string
 	currentLabel string
-	env          *NASM_GenerationEnv // Env for runtime values
+	env          *FASM_GenerationEnv // Env for runtime values
 }
 
-func New_NASM_Generator(outputBuilder *strings.Builder, file string) *NASM_Generator {
+func New_FASM_Generator(outputBuilder *strings.Builder, file string) *FASM_Generator {
 	filepathAbs, err := filepath.Abs(file)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return nil
 	}
-	return &NASM_Generator{
+	return &FASM_Generator{
 		output: outputBuilder,
 		file:   filepathAbs,
 	}
 }
 
 // Function to add the important comments to the strings builder into the output
-func (n *NASM_Generator) AddComments() error {
+func (n *FASM_Generator) AddComments() error {
 	if n.output.String() != "" {
 		return errors.New("the builder has to be empty to add the comments")
 	}
@@ -46,11 +46,11 @@ func (n *NASM_Generator) AddComments() error {
 	return nil
 }
 
-func (n *NASM_Generator) RegisterTask(task *l.TaskDef) {
+func (n *FASM_Generator) RegisterTask(task *l.TaskDef) {
 	n.env.tasks[task.Name] = task
 }
 
-func (n *NASM_Generator) LoadEnv() {
+func (n *FASM_Generator) LoadEnv() {
 	for _, stmt := range n.env.Program.Statements {
 		if stmt.Type() == l.TaskDefNode {
 			task := stmt.(*l.TaskDef)
