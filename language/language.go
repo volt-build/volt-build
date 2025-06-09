@@ -328,17 +328,17 @@ func (p *Parser) peekError(t TokenType) {
 	p.errors = append(p.errors, msg)
 }
 
-func (pr *Parser) ParseProgram() *Program {
+func (p *Parser) ParseProgram() *Program {
 	program := &Program{
 		Statements: []Node{},
 	}
 
-	for !pr.currentTokenIs(EOF) {
-		stmt := pr.parseStatement()
+	for !p.currentTokenIs(EOF) {
+		stmt := p.parseStatement()
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
 		}
-		pr.nextToken()
+		p.nextToken()
 	}
 
 	return program
