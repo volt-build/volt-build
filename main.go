@@ -4,11 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 
 	l "github.com/randomdude16671/mini-build/language"
 )
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU()) // Make all cores avaiable to Go
+
 	silent := flag.Bool("silent", false, "Enable silent mode")
 	verbose := flag.Bool("verbose", false, "Enable verbose mode")
 	version := flag.Bool("version", false, "Print the version and exit")

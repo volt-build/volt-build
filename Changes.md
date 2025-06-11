@@ -9,3 +9,12 @@
 
 <small>TODO's in (TODO.md)[TODO.md]</small>
 <small>This is a new file to hold commits which can't be described in a single sentence</small>
+
+## Commit on 2025-06-11: Compiler Directory 
+
+#### This directory will implement: 
+
+- A compiler which depends on codegen directory 
+- Parallel compilation 
+- A new language system and a semantic analyzer 
+- Possibly making the language statically typed (Similar to go itself) 
