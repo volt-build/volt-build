@@ -1,107 +1,62 @@
 package arena
 
-// This file implements a few structures for a DAG
-// A DAG is a Directed Acyclic Graph.
-// Use this link for info about it: https://en.wikipedia.org/wiki/Directed_acyclic_graph  (wikipedia english)
-
-import (
-	"sync"
-)
-
-type anyFuture interface {
-	Result() any
-	addWaiting(anyFuture)
-	Start()
-	Done() bool
-}
+import "sync"
 
 type Future[T any] struct {
 	mu      sync.Mutex
 	cv      *sync.Cond
-	deps    []anyFuture
-	waiting []anyFuture
-	val     T
 	done    bool
+	result  T
+	deps    []*Future[T]
+	waiters []*Future[T]
 	fn      func([]any) T
 }
 
-func NewFuture[T any]() *Future[T] {
-	f := &Future[T]{}
-	f.cv = sync.NewCond(&f.mu)
-	return f
-}
-
-func NewFutureFromDeps[T any](deps []anyFuture, fn func([]any) T) *Future[T] {
-	f := &Future[T]{
-		deps: deps,
-		fn:   fn,
-	}
-	f.cv = sync.NewCond(&f.mu)
-	return f
-}
-
-func (f *Future[T]) Complete(v T) {
+func (f *Future[T]) maybeStart() {
 	f.mu.Lock()
-	defer f.mu.Unlock()
-	if !f.done {
-		f.val = v
-		f.done = true
-		f.cv.Broadcast()
-		// trigger all waiting futures
-		for _, w := range f.waiting {
-			w.Start()
+	if f.done || f.fn == nil {
+		f.mu.Unlock()
+		return
+	}
+	for _, dep := range f.deps {
+		if dep.IsDone() {
+			return
 		}
 	}
+
+	go f.evaluate()
 }
 
-func (f *Future[T]) Result() any {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	for !f.done {
-		f.cv.Wait()
-	}
-	return f.val
-}
-
-func (f *Future[T]) Done() bool {
+func (f *Future[T]) IsDone() bool {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.done
 }
 
-func (f *Future[T]) addWaiting(wf anyFuture) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.waiting = append(f.waiting, wf)
-}
-
-func (f *Future[T]) Start() {
-	// Register as waiting on deps
-	for _, dep := range f.deps {
-		dep.addWaiting(f)
+func (f *Future[T]) evaluate() {
+	args := make([]any, len(f.deps))
+	for i, dep := range f.deps {
+		args[i] = dep.Await()
 	}
-
+	result := f.fn(args)
 	f.mu.Lock()
-	if f.done {
-		f.mu.Unlock()
-		return
-	}
+	f.result = result
+	f.done = true
+	f.cv.Broadcast()
+	waiters := append([]*Future[T]{}, f.waiters...)
 	f.mu.Unlock()
 
-	// Check if all deps are done
-	for _, dep := range f.deps {
-		if !dep.Done() {
-			return // wait until all deps are ready
-		}
+	for _, w := range waiters {
+		w.maybeStart()
 	}
-
-	go func() {
-		args := make([]any, len(f.deps))
-		for i, dep := range f.deps {
-			args[i] = dep.Result()
-		}
-		f.Complete(f.fn(args))
-	}()
 }
 
-type RootFuture[T any] struct{}
+func (f *Future[T]) Await() T {
+	f.mu.Lock()
+	for !f.done {
+		f.cv.Wait()
+	}
+	val := f.result
+	f.mu.Unlock()
+	return val
+}
