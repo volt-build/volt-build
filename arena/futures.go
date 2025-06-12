@@ -1,4 +1,8 @@
-package compiler
+package arena
+
+// This file implements a few structures for a DAG
+// A DAG is a Directed Acyclic Graph.
+// Use this link for info about it: https://en.wikipedia.org/wiki/Directed_acyclic_graph  (wikipedia english)
 
 import (
 	"sync"
@@ -99,3 +103,5 @@ func (f *Future[T]) Start() {
 		f.Complete(f.fn(args))
 	}()
 }
+
+type RootFuture[T any] struct{}
