@@ -12,6 +12,22 @@ type Future[T any] struct {
 	fn      func([]any) T
 }
 
+func NewFuture[T any](fn func([]any) T, deps ...*Future[T]) *Future[T] {
+	f := &Future[T]{
+		deps:    deps,
+		fn:      fn,
+		waiters: make([]*Future[T], 0),
+	}
+	f.cv = sync.NewCond(&f.mu)
+	for _, dep := range deps {
+		dep.mu.Lock()
+		dep.waiters = append(dep.waiters, f)
+		dep.mu.Unlock()
+	}
+	f.maybeStart()
+	return f
+}
+
 func (f *Future[T]) maybeStart() {
 	f.mu.Lock()
 	if f.done || f.fn == nil {
@@ -19,11 +35,12 @@ func (f *Future[T]) maybeStart() {
 		return
 	}
 	for _, dep := range f.deps {
-		if dep.IsDone() {
+		if !dep.IsDone() {
+			f.mu.Unlock()
 			return
 		}
 	}
-
+	f.mu.Unlock()
 	go f.evaluate()
 }
 
