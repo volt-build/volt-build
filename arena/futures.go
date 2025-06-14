@@ -20,9 +20,11 @@ func NewFuture[T any](fn func([]any) T, deps ...*Future[T]) *Future[T] {
 	}
 	f.cv = sync.NewCond(&f.mu)
 	for _, dep := range deps {
-		dep.mu.Lock()
-		dep.waiters = append(dep.waiters, f)
-		dep.mu.Unlock()
+		if dep != nil {
+			dep.mu.Lock()
+			dep.waiters = append(dep.waiters, f)
+			dep.mu.Unlock()
+		}
 	}
 	f.maybeStart()
 	return f
@@ -35,9 +37,11 @@ func (f *Future[T]) maybeStart() {
 		return
 	}
 	for _, dep := range f.deps {
-		if !dep.IsDone() {
-			f.mu.Unlock()
-			return
+		if dep != nil {
+			if !dep.IsDone() {
+				f.mu.Unlock()
+				return
+			}
 		}
 	}
 	f.mu.Unlock()
@@ -45,15 +49,15 @@ func (f *Future[T]) maybeStart() {
 }
 
 func (f *Future[T]) IsDone() bool {
-	f.mu.Lock()
-	defer f.mu.Unlock()
 	return f.done
 }
 
 func (f *Future[T]) evaluate() {
 	args := make([]any, len(f.deps))
 	for i, dep := range f.deps {
-		args[i] = dep.Await()
+		if dep != nil {
+			args[i] = dep.Await()
+		}
 	}
 	result := f.fn(args)
 	f.mu.Lock()

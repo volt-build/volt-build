@@ -1,0 +1,4 @@
+run: 
+  skip-dirs: 
+    # to prevent CPU from going crazy when I'm debugging/searching the stdlib of go for something (helps me understand go better) 
+    - /nix/store 
