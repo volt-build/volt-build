@@ -19,6 +19,8 @@ Things that are welcome:
 - Improvements to the DAG (package `arena`) 
 - `SnapShot()` function for the `Arena` struct 
 - Fixing of things in [TODO.md](TODO.md), or fixing of the TODO's in the code
+- Better Error Messages (Very very appreciated if you do this!, This feature is very important for any kind of language) 
+- Docs/Docs Website help (Different repo) 
 
 Things that are not: 
 
