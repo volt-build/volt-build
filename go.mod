@@ -1,3 +1,3 @@
 module github.com/randomdude16671/mini-build
 
-go 1.24.1
+go 1.24.4

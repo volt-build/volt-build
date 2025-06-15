@@ -17,12 +17,13 @@
     in {
       devShells.default = pkgs.mkShell {
         packages = [
+          # lot of tools, use every single one of them.
           pkgs.go
           pkgs.golangci-lint
           pkgs.gotools
           pkgs.gopls
           pkgs.delve
-					pkgs.gofumpt
+          pkgs.gofumpt
         ];
       };
       packages.default = pkgs.buildGoModule {
