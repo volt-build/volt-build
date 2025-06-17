@@ -1,6 +1,8 @@
 package arena
 
-import "sync"
+import (
+	"sync"
+)
 
 type Arena[T any] struct {
 	mu      sync.Mutex
@@ -76,4 +78,11 @@ func (a *Arena[T]) collectResults() []T {
 		results = append(results, a.Chained.collectResults()...)
 	}
 	return results
+}
+
+func (a *Arena[T]) Destroy() error {
+	for _, future := range a.Futures {
+		future.destroy()
+	}
+	return nil
 }

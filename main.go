@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU()) // Make all cores avaiable to Go
+	runtime.GOMAXPROCS(runtime.NumCPU()) // Make all cores avaiable to Go (Kind of redundant)
 
 	silent := flag.Bool("silent", false, "Enable silent mode")
 	verbose := flag.Bool("verbose", false, "Enable verbose mode")
@@ -98,7 +98,6 @@ func main() {
 			fmt.Printf("Error reading Taskfile: %v\n", err)
 			os.Exit(1)
 		}
-
 		if err := l.RunTaskScript(string(content), mode); err != nil {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)

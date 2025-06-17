@@ -23,8 +23,8 @@ task test {
     compile "." "ls -l" 
 }
 
-task debugBuild {
-    push "Building With Debug" 
-    compile "." "go build -gcflags='all=-N -l' -o target/debug" 
-    push "Done with exit code: " ++ $? 
+task release-build {
+	push "Release build" 
+	compile "." "go build -ldflags='-s -w' -o ./target/" 
+	push "Release build done with exit code: " ++ $? 
 }

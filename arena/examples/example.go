@@ -51,6 +51,7 @@ func DoWork() {
 	f2 := a.NewFuture[string](f2func, f)
 
 	ar := a.NewArena(f)
+	fmt.Println(ar.Futures)
 	ar.AddFuture(f2)
 	things := ar.AwaitAll()
 	for i, str := range things {

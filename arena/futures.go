@@ -1,6 +1,9 @@
 package arena
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 type Future[T any] struct {
 	mu      sync.Mutex
@@ -80,4 +83,15 @@ func (f *Future[T]) Await() T {
 	val := f.result
 	f.mu.Unlock()
 	return val
+}
+
+func (f *Future[T]) destroy() error {
+	for _, dep := range f.deps {
+		// recursively delete all deps
+		dep.destroy()
+	}
+	if !f.done {
+		return fmt.Errorf("can't destroy unfinished future: internal error")
+	}
+	return nil
 }
