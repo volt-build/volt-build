@@ -1,62 +1,71 @@
 /*
-- this is a copy of the language/lexer.go, I have just tried to optimize it
-- I am going to be doing this for every file under language package
-- This will be done until the compiler is fully implemented and then the interpreter
-will be removed.
-- This is **NOT** completely confirmed yet, but I still plan to make the interpreter into
-a JIT compiler. And I also plan to make compilation the default
+What is this file?
+  - this is a copy of the language/lexer.go, I have just tried to optimize it
+  - I am going to be doing this for every file under language package
+  - This will be done until the compiler is fully implemented and then the interpreter
+    will be removed.
+  - This is **NOT** completely confirmed yet, but I still plan to make the interpreter into
+    a JIT compiler. And I also plan to make compilation the default
 */
+
 package compiler
 
 type TokenType int
 
 const (
+	// Token types.
 	EOF TokenType = iota
 	ILLEGAL
 
+	// Literals.
 	STRING
 	IDENT
 	NEWLINE
-	NUM
+	NUMBER
 	COMMENT
 
-	DEF
-	ASSIGN
-	EQUAL
-	MINUS
-	ASTERISK
-	PLUS
-	MODULO
-	SLASH
-	MORETHAN
-	LESSTHAN
-	LESSOREQ
-	GREATOREQ
-	NOTEQ
-	NOT
-	AND
-	OR
-	SHELL
-	CONCAT
+	// Operators.
+	DEFINE      // = (again)
+	ASSIGN      // =
+	EQUAL       // ==
+	MINUS       // -
+	ASTERISK    // *
+	PLUS        // +
+	MODULO      // %
+	SLASH       // `/`
+	GREATERTHAN // >
+	LESSTHAN    // <
+	LORETO      // <=
+	GORETO      // >=
+	NOTEQUAL    // !=
+	NOT         // !
+	AND         // &&
+	OR          // ||
+	SHELL       // $
+	CONCAT      // ++ (new concatenation operator [fire])
 
-	COMMA
-	SEMICOLON
-	LPAREN
-	RPAREN
-	LBRACE
-	RBRACE
-	LBRACKET
-	RBRACKET
-	PIPE
+	// Delimiters.
+	COMMA     // `,`
+	SEMICOLON // `;`
+	LPAREN    // (
+	RPAREN    // )
+	LBRACE    // {
+	RBRACE    // }
+	LBRACKET  // [
+	RBRACKET  // ]
+	PIPE      // |
 
-	TASK
-	EXEC
-	WHILE // Imeplent this too
-	IF
-	ELSE
-	IMPORT // TOOD: implement multiple files support
-	FOREACH
-	COMPILE
+	// Keywords.
+	TASK       // task
+	RUN        // run (run command)
+	IF         // if
+	ELSE       // else
+	IMPORT     // include
+	DEPENDENCY // (require programs) require
+	SWAP       // (swap two variables) swap
+	WHILE      // while
+	FOREACH    // (foreach thing in an array or some shit idk) foreach
+	COMPILE    // (compile things with command)  compile
 )
 
 type Token struct {
@@ -67,13 +76,13 @@ type Token struct {
 }
 
 type Lexer struct {
-	input    string
-	pos      int
-	readPos  int
-	ch       rune
-	line     int
-	column   int
-	keywords map[string]TokenType
+	input        string
+	position     int  // current pos in input
+	readPosition int  // current reading pos
+	ch           rune // current char under examination
+	line         int  // current line
+	column       int  // current column num
+	keywords     map[string]TokenType
 }
 
 func NewLexer(input string) *Lexer {
@@ -83,45 +92,54 @@ func NewLexer(input string) *Lexer {
 		column: 0,
 	}
 	l.keywords = map[string]TokenType{
-		"task":    TASK,
-		"compile": COMPILE,
-		"if":      IF,
-		"else":    ELSE,
-		"while":   WHILE,
-		"foreach": FOREACH,
+		"task":     TASK,
+		"compile":  COMPILE,
+		"require":  DEPENDENCY,
+		"if":       IF,
+		"else":     ELSE,
+		"swap":     SWAP,
+		"requires": DEPENDENCY,
+		"while":    WHILE,
+		"foreach":  FOREACH,
 	}
+
+	l.readChar()
 	return l
 }
 
 func (l *Lexer) readChar() {
-	if l.readPos >= len(l.input) {
-		l.ch = 0 // EOF
+	if l.readPosition >= len(l.input) {
+		l.ch = 0 // represents EOF
 	} else {
-		l.ch = rune(l.input[l.readPos])
+		l.ch = rune(l.input[l.readPosition])
 	}
 
-	l.pos = l.readPos
-	l.readPos++
+	l.position = l.readPosition
+	l.readPosition++
+
 	if l.ch == '\n' {
 		l.line++
+		l.column = 0
 	} else {
 		l.column++
 	}
 }
 
 func (l *Lexer) peekChar() rune {
-	if l.readPos >= len(l.input) {
+	if l.readPosition >= len(l.input) {
 		return 0
 	}
-	return rune(l.input[l.readPos])
+	return rune(l.input[l.readPosition])
 }
 
 func (l *Lexer) NextToken() Token {
 	var tok Token
-	l.skipSpace()
+	l.skipWhitespace()
 	tok.Line = l.line
 	tok.Column = l.column
+
 	switch l.ch {
+	// Literals.
 	case '#':
 		tok.Type = COMMENT
 		tok.Literal = l.readComment()
@@ -131,9 +149,9 @@ func (l *Lexer) NextToken() Token {
 		tok.Literal = l.readString(l.ch)
 		return tok
 
-	// Opertators.
+		// Opertators.
 	case ':':
-		tok.Type = DEF
+		tok.Type = DEFINE
 		tok.Literal = "="
 	case '+':
 		if l.peekChar() == '+' {
@@ -211,7 +229,7 @@ func (l *Lexer) NextToken() Token {
 		tok.Type = SHELL
 		tok.Literal = "$"
 
-	// Delimiters.
+		// Delimiters.
 	case '(':
 		tok.Type = LPAREN
 		tok.Literal = "("
@@ -259,53 +277,84 @@ func (l *Lexer) NextToken() Token {
 			}
 			return tok
 		} else if isDigit(l.ch) {
-			tok.Type = NUM
+			tok.Type = NUMBER
 			tok.Literal = l.readNumber()
 			return tok
 		} else {
 			tok.Type = ILLEGAL
 			tok.Literal = string(l.ch)
 		}
-
 	}
 
 	l.readChar()
 	return tok
 }
 
-func isLetter(ch rune) bool {
-	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z'
-}
-
-func (l *Lexer) skipSpace() {
-	for l.ch == ' ' || l.ch == '\t' || l.ch == '\r' {
-		l.readChar()
-	}
-}
-
-func (l *Lexer) readComment() string {
-	pos := l.pos
-	for l.ch != '\n' && l.ch != '0' {
-		l.readChar()
-	}
-	return l.input[pos:l.pos]
-}
-
 func (l *Lexer) readNumber() string {
-	pos := l.pos
+	position := l.position
 	for isDigit(l.ch) {
 		l.readChar()
 	}
 
+	// To handle floating point numbers.
 	if l.ch == '.' && isDigit(l.peekChar()) {
 		l.readChar()
 		for isDigit(l.ch) {
 			l.readChar()
 		}
 	}
-	return l.input[pos:l.pos]
+	return l.input[position:l.position]
 }
 
-func isDigit(char rune) bool {
-	return '0' <= char && char <= '9'
+func isDigit(thing rune) bool {
+	return '0' <= thing && thing <= '9'
+}
+
+func (l *Lexer) readIdentifier() string {
+	position := l.position
+	for isLetter(l.ch) || isDigit(l.ch) || l.ch == '_' || l.ch == '-' || l.ch == '.' {
+		l.readChar()
+	}
+	return l.input[position:l.position]
+}
+
+func isLetter(a rune) bool {
+	return 'a' <= a && a <= 'z' || 'A' <= a && a <= 'Z'
+}
+
+func (l *Lexer) skipWhitespace() {
+	for l.ch == ' ' || l.ch == '\t' || l.ch == '\r' {
+		l.readChar()
+	}
+}
+
+func (l *Lexer) readComment() string {
+	position := l.position
+	for l.ch != '\n' && l.ch != 0 {
+		l.readChar()
+	}
+
+	return l.input[position:l.position]
+}
+
+func (l *Lexer) readString(quote rune) string {
+	position := l.position + 1
+	for {
+		l.readChar()
+		if l.ch == quote {
+			break
+		}
+
+		if l.ch == '\\' && l.peekChar() == quote {
+			l.readChar()
+		}
+	}
+
+	if l.ch == 0 {
+		return l.input[position-1 : l.position]
+	}
+
+	result := l.input[position:l.position]
+	l.readChar()
+	return result
 }
