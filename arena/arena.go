@@ -8,7 +8,7 @@ type Arena[T any] struct {
 	mu      sync.Mutex
 	Futures []*Future[T]
 	Done    bool
-	Chained *Arena[T]
+	Chained *Arena[T] // use in super big projects
 }
 
 func NewArena[T any](initialFuture *Future[T]) *Arena[T] {
