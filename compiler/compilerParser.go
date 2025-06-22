@@ -6,8 +6,6 @@ This file?
 package compiler
 
 import (
-	"fmt"
-	"os"
 	"strings"
 )
 
@@ -105,39 +103,22 @@ func (p *Program) String() string {
 	return out.String()
 }
 
-type TaskDep interface {
-	Evaluate() error
-	Exists() bool
-}
-
 type TaskDefInput struct {
-	FileName string
-	Exist    bool
-}
-
-func (t *TaskDefInput) Evaluate() error {
-	if t.Exists() {
-		return nil
-	} else {
-		return fmt.Errorf("file doesn't exist")
-	}
-}
-
-// NOTE: doesn't allow inputs to be symlinks (might change in future)
-func (t *TaskDefInput) Exists() bool {
-	if _, err := os.Lstat(t.FileName); err == nil {
-		return true
-	}
-	return false
+	Path     string   // Absolute path
+	Optional bool     // self explanatory
+	Hash     string   // Content hash for caching
+	FromTask *TaskDef // A return from a task
 }
 
 type TaskDefOutput struct {
-	FileName string
-	Exists   bool
+	Path     string // Absolute path
+	Optional bool   // self explanatory
+	Hash     string // Content hash for caching
 }
 
 type TaskDef struct {
-	Name    string
-	Inputs  []*TaskDefInput
-	Outputs []*TaskDefOutput
+	Name     string           // Name of the task
+	TaskDeps []*TaskDef       // List of tasks to complete before this one
+	Inputs   []*TaskDefInput  // List of inputs of the task
+	Outputs  []*TaskDefOutput // List of outputs of the task
 }

@@ -66,6 +66,7 @@ const (
 	WHILE      // while
 	FOREACH    // (foreach thing in an array or some shit idk) foreach
 	COMPILE    // (compile things with command)  compile
+	RETURN     // return a value from a task
 )
 
 type Token struct {
@@ -101,6 +102,7 @@ func NewLexer(input string) *Lexer {
 		"requires": DEPENDENCY,
 		"while":    WHILE,
 		"foreach":  FOREACH,
+		"return":   RETURN,
 	}
 
 	l.readChar()
