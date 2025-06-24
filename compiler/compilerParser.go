@@ -6,6 +6,7 @@ This file?
 package compiler
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -104,10 +105,9 @@ func (p *Program) String() string {
 }
 
 type TaskDefInput struct {
-	Path     string   // Absolute path
-	Optional bool     // self explanatory
-	Hash     string   // Content hash for caching
-	FromTask *TaskDef // A return from a task
+	Path     string // Absolute path
+	Optional bool   // self explanatory
+	Hash     string // Content hash for caching
 }
 
 type TaskDefOutput struct {
@@ -121,4 +121,43 @@ type TaskDef struct {
 	TaskDeps []*TaskDef       // List of tasks to complete before this one
 	Inputs   []*TaskDefInput  // List of inputs of the task
 	Outputs  []*TaskDefOutput // List of outputs of the task
+}
+
+func (t *TaskDef) Type() NodeType { return TaskDefNode }
+
+// Insanity.
+func (t *TaskDef) String() string {
+	var out strings.Builder
+	out.WriteString(fmt.Sprintf("task %s {", t.Name))
+	if len(t.Inputs) > 0 {
+		out.WriteString("inputs = {")
+		for _, input := range t.Inputs {
+			out.WriteString(fmt.Sprintf("\"%s\",", input.Path))
+		}
+		out.WriteString("}")
+	}
+	if len(t.Outputs) > 0 {
+		out.WriteString("outputs = {")
+		for _, output := range t.Outputs {
+			out.WriteString(fmt.Sprintf("\"%s\",", output.Path))
+		}
+		out.WriteString("}")
+	}
+	return out.String()
+}
+
+// Doesn't necessarily need to be compilation, but onlu used if is a heavy task.
+type CompileStatement struct {
+	File    Node // File which is being compiled
+	Command Node // Command being applied to it
+}
+
+func (c *CompileStatement) Type() NodeType { return CompileNode }
+func (c *CompileStatement) String() string {
+	return fmt.Sprintf("compile %s %s", c.File.String(), c.Command.String())
+}
+
+type ConcatOperation struct {
+	Left  Node
+	Right Node
 }

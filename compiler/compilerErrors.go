@@ -118,3 +118,36 @@ func (ome *OutputMissingError) Human() string {
 	out.WriteString(fmt.Sprintf("\nnote: the file %q is required but was not generated.\n", ome.NotFoundFile))
 	return out.String()
 }
+
+type SyntaxError struct {
+	ExpectedToken string
+	GivenToken    string
+	Line          int
+	Col           int
+	File          string
+}
+
+func (se *SyntaxError) Error() string {
+	return fmt.Sprintf("syntax error: expected %s, got %s", se.ExpectedToken, se.GivenToken)
+}
+
+func (se *SyntaxError) Human() string {
+	var out strings.Builder
+	out.WriteString("\n")
+	out.WriteString(fmt.Sprintf("syntax error: expected %s, got %s", se.ExpectedToken, se.GivenToken))
+	out.WriteString(fmt.Sprintf("  → %s:%d:%d\n", se.File, se.Line, se.Col))
+
+	lines, err := getLineFromFile(se.File, se.Line)
+	if err == nil {
+		out.WriteString(lines)
+		// Add a caret under the column position
+		out.WriteString("     ")
+		for i := 1; i < se.Col; i++ {
+			out.WriteByte(' ')
+		}
+		out.WriteString("^\n")
+	}
+	out.WriteString("\n")
+
+	return out.String()
+}
