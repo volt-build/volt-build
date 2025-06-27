@@ -10,7 +10,7 @@ import (
 )
 
 /*
-- This type is to generate FASM (Flat Assembly) from a mini-build file.
+- This type is to generate FASM (Flat Assembly) from a volt-build file.
 
 	It is designed in the same way as the interpreter, it uses a strange
 	technique of compilation that I like to call "recursive descent compilation"

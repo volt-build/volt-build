@@ -49,7 +49,7 @@ task buildc {
 
 Usage: 
 
-- Put these in a build.mb file in the CWD and just mini-build -t `<TaskName>`! 
+- Put these in a build.volt file in the CWD and just volt -t `<TaskName>`! 
 
 
 > This is was designed to be as simple as possible, but with no YAML/TOML/JSON/GNU make 
