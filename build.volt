@@ -1,0 +1,22 @@
+task build {
+    push "Building.."
+    compile "." "go build -o target/"
+    push "Done with exit code: " ++ $?
+}
+
+task fmt {
+    push "starting formatting.... "
+    foreach "./*.go" gofile {
+        push "Formatting: " ++ gofile
+		# Run 2 formatters 
+        shell "gofumpt -w " ++ gofile
+		shell "goimports -w " ++ gofile 
+    }
+    push "Done with exit code: "  ++ $?
+}
+
+task termlint {
+    push "Linting code"
+	compile "./..." "golangci-lint 
+    push "Done with exit code: "  ++ $?
+}

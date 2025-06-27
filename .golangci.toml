@@ -1,0 +1,18 @@
+version = '2'
+
+[linters]
+[linters.exclusions]
+generated = 'lax'
+presets = [
+  'comments',
+  'common-false-positives',
+  'legacy',
+  'std-error-handling'
+]
+paths = [
+  '/nix/store'
+]
+
+[formatters]
+[formatters.exclusions]
+generated = 'lax'

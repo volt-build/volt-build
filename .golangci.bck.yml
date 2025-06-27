@@ -1,0 +1,5 @@
+issues: 
+  exclude-dirs: 
+    - /nix/store 
+
+  exclude-dirs-use-default: false 
