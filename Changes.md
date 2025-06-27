@@ -18,3 +18,7 @@
 - Parallel compilation 
 - A new language system and a semantic analyzer 
 - Possibly making the language statically typed (Similar to go itself) 
+
+## Commit on 2025-06-27: Compiler parser update and filename changed to build.mb instead of Taskfile
+
+#### NOTE: Theres going to be a new scheduler-like thing in a new GitHub organisation for complex compilation tasks 
