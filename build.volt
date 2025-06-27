@@ -17,6 +17,6 @@ task fmt {
 
 task termlint {
     push "Linting code"
-	compile "./..." "golangci-lint 
+	compile "./..." "golangci-lint run"
     push "Done with exit code: "  ++ $?
 }
