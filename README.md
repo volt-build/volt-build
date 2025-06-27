@@ -4,7 +4,7 @@
 <h3 align="left">A few examples on usage</h1>
 
 - A task to format a directory with go files: 
-```volt
+```task
 # Task declaration:
 #     ┌─▶ 'fmt' is the name of the task
 task fmt {
@@ -22,7 +22,7 @@ task fmt {
 ```
 
 - A task to lint a directory with go files: 
-```volt 
+```task 
 task lint {
     push "Linting..." 
     shell "golang-ci run ./..." 
@@ -31,7 +31,7 @@ task lint {
 ```
 
 - A task to build c files from `src/`: 
-```volt
+```task
 task buildc {
     output_dir = "bin" # example 
     shell "mkdir " ++ output # make sure it exists 
