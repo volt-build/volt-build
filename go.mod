@@ -1,3 +1,3 @@
-module github.com/volt-build/volt
+module github.com/volt-build/volt-build
 
 go 1.24.4
