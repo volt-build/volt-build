@@ -43,7 +43,7 @@ func main() {
 
 		// Handle single task if specified
 		if *singleTask != "" {
-			input, err := os.ReadFile("./Taskfile")
+			input, err := os.ReadFile("./build.mb")
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 			}
@@ -56,9 +56,9 @@ func main() {
 		}
 
 		// Handle full taskfile
-		content, err := os.ReadFile("./Taskfile")
+		content, err := os.ReadFile("./build.mb")
 		if err != nil {
-			fmt.Printf("Error reading Taskfile: %v\n", err)
+			fmt.Printf("Error reading build.mb: %v\n", err)
 			os.Exit(1)
 		}
 
@@ -80,7 +80,7 @@ func main() {
 
 		// Handle single task if specified
 		if *singleTask != "" {
-			input, err := os.ReadFile(path + "/Taskfile")
+			input, err := os.ReadFile(path + "/build.mb")
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 			}
@@ -93,9 +93,9 @@ func main() {
 		}
 
 		// Handle full taskfile
-		content, err := os.ReadFile(path + "/Taskfile")
+		content, err := os.ReadFile(path + "/build.mb")
 		if err != nil {
-			fmt.Printf("Error reading Taskfile: %v\n", err)
+			fmt.Printf("Error reading build.mb: %v\n", err)
 			os.Exit(1)
 		}
 		if err := l.RunTaskScript(string(content), mode); err != nil {

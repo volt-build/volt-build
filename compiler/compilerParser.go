@@ -161,3 +161,8 @@ type ConcatOperation struct {
 	Left  Node
 	Right Node
 }
+
+func (c *ConcatOperation) Type() NodeType { return Concat }
+func (c *ConcatOperation) String() string {
+	return fmt.Sprintf("%s ++ %s", c.Left.String(), c.Right.String())
+}

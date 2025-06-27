@@ -34,7 +34,7 @@ task lint {
 ``` 
 task buildc {
     output_dir = "bin" # example 
-    shell "mkdir " ++ bin # make sure it exists 
+    shell "mkdir " ++ output # make sure it exists 
     cc = "your-compiler" 
     flags "-flags -for -your -compiler" 
     foreach "./src/*.c" cfile {
@@ -46,3 +46,10 @@ task buildc {
     }
 }
 ```
+
+Usage: 
+
+- Put these in a build.mb file in the CWD and just mini-build -t `<TaskName>`! 
+
+
+> This is was designed to be as simple as possible, but with no YAML/TOML/JSON/GNU make 

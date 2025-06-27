@@ -19,10 +19,6 @@ task termlint {
     push "Done with exit code: "  ++ $? 
 }
 
-task test {
-    compile "." "ls -l" 
-}
-
 task release-build {
 	push "Release build" 
 	compile "." "go build -ldflags='-s -w' -o ./target/" 
