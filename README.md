@@ -1,6 +1,10 @@
 <h1 align="center"> mini-build </h1> 
 <small>A build system I wrote because run-tasks.sh was too much effort</small> 
 
+
+# Note: 
+Project might be renamed and changed location of (to an org) 
+
 <h3 align="left">A few examples on usage</h1>
 
 - A task to format a directory with go files: 
