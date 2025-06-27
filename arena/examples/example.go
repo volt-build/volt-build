@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	a "github.com/randomdude16671/mini-build/arena"
+	a "github.com/volt-build/volt-build/arena"
 )
 
 // This DAG is still rough around the corners. Will improve it a lot.. this is a current example:

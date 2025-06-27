@@ -6,7 +6,7 @@ package codegen
 import (
 	"strings"
 
-	l "github.com/randomdude16671/mini-build/language"
+	l "github.com/volt-build/volt-build/language"
 )
 
 /*

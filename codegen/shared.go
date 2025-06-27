@@ -1,6 +1,6 @@
 package codegen
 
-import l "github.com/randomdude16671/mini-build/language"
+import l "github.com/volt-build/volt-build/language"
 
 // the target currently being compiled to.
 type CompilerTarget int

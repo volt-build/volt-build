@@ -6,7 +6,7 @@ import (
 	"os"
 	"runtime"
 
-	l "github.com/randomdude16671/mini-build/language"
+	l "github.com/volt-build/volt-build/language"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 
 	flag.Parse()
 	if *version {
-		fmt.Println("mini-build: version 0.1.0")
+		fmt.Println("volt: version 0.1.0")
 		return
 	}
 
@@ -43,7 +43,7 @@ func main() {
 
 		// Handle single task if specified
 		if *singleTask != "" {
-			input, err := os.ReadFile("./build.mb")
+			input, err := os.ReadFile("./build.volt")
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 			}
@@ -56,9 +56,9 @@ func main() {
 		}
 
 		// Handle full taskfile
-		content, err := os.ReadFile("./build.mb")
+		content, err := os.ReadFile("./build.volt")
 		if err != nil {
-			fmt.Printf("Error reading build.mb: %v\n", err)
+			fmt.Printf("Error reading build.volt: %v\n", err)
 			os.Exit(1)
 		}
 
@@ -80,7 +80,7 @@ func main() {
 
 		// Handle single task if specified
 		if *singleTask != "" {
-			input, err := os.ReadFile(path + "/build.mb")
+			input, err := os.ReadFile(path + "/build.volt")
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 			}
@@ -93,9 +93,9 @@ func main() {
 		}
 
 		// Handle full taskfile
-		content, err := os.ReadFile(path + "/build.mb")
+		content, err := os.ReadFile(path + "/build.volt")
 		if err != nil {
-			fmt.Printf("Error reading build.mb: %v\n", err)
+			fmt.Printf("Error reading build.volt: %v\n", err)
 			os.Exit(1)
 		}
 		if err := l.RunTaskScript(string(content), mode); err != nil {

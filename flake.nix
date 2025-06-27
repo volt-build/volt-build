@@ -1,5 +1,5 @@
 {
-  description = "mini-build: A small build system I wrote for myself to run repetitive tasks easily";
+  description = "volt: A small build system I wrote for myself to run repetitive tasks easily";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -27,7 +27,7 @@
         ];
       };
       packages.default = pkgs.buildGoModule {
-        pname = "mini-build";
+        pname = "volt";
         version = "0.1.0";
         src = ./.;
         vendorHash = null;
