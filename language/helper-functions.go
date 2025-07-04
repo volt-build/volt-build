@@ -18,8 +18,8 @@ const (
 )
 
 // Main way to interact with everything.
-func RunTaskScript(input string, mode EvalMode) error {
-	lex := NewLexer(input)
+func RunTaskScript(input string, mode EvalMode, file string) error {
+	lex := NewLexer(input, file)
 	parser := NewParser(lex)
 	program := parser.ParseProgram()
 
@@ -59,7 +59,7 @@ func RunTaskScript(input string, mode EvalMode) error {
 // here, input is the whole file and taskName is the name of the task to be run without variables
 // Run a single task with this function for flags/position arguments;
 func RunSingleTask(input string, taskName string, mode EvalMode) error {
-	lexer := NewLexer(input)
+	lexer := NewLexer(input, taskName)
 	parser := NewParser(lexer)
 	program := parser.ParseProgram()
 
@@ -93,22 +93,5 @@ func RunSingleTask(input string, taskName string, mode EvalMode) error {
 	case EvalRegular:
 		_, err = interpreter.evaluateExec(execStmt) // works
 	}
-	return err
-}
-
-func RunTaskScriptWithStatus(input string /* mode EvalMode // not yet supported */) error {
-	lexer := NewLexer(input)
-	parser := NewParser(lexer)
-	progrem := parser.ParseProgram()
-
-	if len(parser.errors) > 0 {
-		for _, i := range parser.errors {
-			fmt.Printf("%s\n", i)
-		}
-		return errors.New("parsing failed")
-	}
-
-	interpreter := NewInterpreter()
-	_, err := interpreter.Evaluate(progrem)
 	return err
 }

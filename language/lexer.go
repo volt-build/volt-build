@@ -66,6 +66,7 @@ type Token struct {
 }
 
 type Lexer struct {
+	filename     string
 	input        string
 	position     int  // current pos in input
 	readPosition int  // current reading pos
@@ -75,7 +76,7 @@ type Lexer struct {
 	keywords     map[string]TokenType
 }
 
-func NewLexer(input string) *Lexer {
+func NewLexer(input string, filename string) *Lexer {
 	l := &Lexer{
 		input:  input,
 		line:   1,
