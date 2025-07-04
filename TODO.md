@@ -5,5 +5,4 @@
 
 - [ ] Status like ninja 
 - [ ] warning when no work to do 
-
-
+- [ ] Lexer update 

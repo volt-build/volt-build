@@ -46,14 +46,14 @@ const (
 	PIPE      // |
 
 	// Keywords.
-	TASK       // task
-	RUN        // run (run command)
-	IF         // if
-	ELSE       // else
-	IMPORT     // include
+	TASK   // task
+	RUN    // run (run command)
+	IF     // if
+	ELSE   // else
+	IMPORT // include
+	SWAP
+	WHILE
 	DEPENDENCY // (require programs) require
-	SWAP       // (swap two variables) swap
-	WHILE      // while
 	FOREACH    // (foreach thing in an array or some shit idk) foreach
 	COMPILE    // (compile things with command)  compile
 )
@@ -82,15 +82,14 @@ func NewLexer(input string) *Lexer {
 		column: 0,
 	}
 	l.keywords = map[string]TokenType{
-		"task":     TASK,
-		"compile":  COMPILE,
-		"require":  DEPENDENCY,
-		"if":       IF,
-		"else":     ELSE,
-		"swap":     SWAP,
-		"requires": DEPENDENCY,
-		"while":    WHILE,
-		"foreach":  FOREACH,
+		"task":    TASK,
+		"compile": COMPILE,
+		"require": DEPENDENCY,
+		"if":      IF,
+		"else":    ELSE,
+		"shell":   RUN,
+		"import":  IMPORT,
+		"foreach": FOREACH,
 	}
 
 	l.readChar()
