@@ -90,6 +90,8 @@ func NewLexer(input string, filename string) *Lexer {
 		"else":    ELSE,
 		"shell":   RUN,
 		"import":  IMPORT,
+		"swap":    SWAP,
+		"while":   WHILE,
 		"foreach": FOREACH,
 	}
 
@@ -320,7 +322,8 @@ func (l *Lexer) skipWhitespace() {
 
 func (l *Lexer) readComment() string {
 	position := l.position
-	for l.ch != '\n' && l.ch != '0' {
+	// 0 == null rune (Actual EOF)
+	for l.ch != '\n' && l.ch != 0 {
 		l.readChar()
 	}
 

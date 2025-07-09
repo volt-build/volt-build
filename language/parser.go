@@ -10,6 +10,21 @@ type (
 	infixParseFn  func(Node) Node
 )
 
+type Precedence int
+
+const (
+	_ Precedence = iota
+	LOWEST
+	LOGICAL_OR
+	LOGICAL_AND
+	EQUALS
+	LESSGREATER
+	CONCATENTATION
+	SUM
+	PRODUCT
+	SHELLPRECEDENCE
+)
+
 type Parser struct {
 	l            *Lexer
 	currentToken Token
@@ -88,4 +103,38 @@ func (p *Parser) peekError(t TokenType) {
 	out.WriteString("expected %s but got %s\n")
 	out.WriteString(fmt.Sprintf("\t->%s:%d:%d :\n", p.l.filename, p.l.line, p.l.column))
 	p.errors = append(p.errors, out.String())
+}
+
+func (p *Parser) parseIdentifier() Node {
+	return &Identifier{Value: p.currentToken.Literal}
+}
+
+func (p *Parser) parseStringLiteral() Node {
+	return &StringLiteral{Value: p.currentToken.Literal}
+}
+
+func (p *Parser) parseStatement() Node {
+	switch p.currentToken.Type {
+	case TASK:
+		return p.parseTaskDefinition()
+	case RUN:
+		return p.parseExecStatement()
+	case IF:
+		return p.parseIfStatement()
+	case FOREACH:
+		return p.parseForEachStatement()
+	case WHILE:
+		return p.parseWhileStatement()
+	case COMPILE:
+		return p.parseCompileStatement()
+	case IDENT:
+		// Check if this is an assignment
+		if p.peekTokenIs(ASSIGN) {
+			return p.parseAssignmentStatement()
+		}
+		// Otherwise it's an expression statement
+		return p.parseExpressionStatement()
+	default:
+		return p.parseExpressionStatement()
+	}
 }
