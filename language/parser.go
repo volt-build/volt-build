@@ -148,7 +148,8 @@ func (p *Parser) parseTaskDefinition() *TaskDef {
 
 	task.Name = p.currentToken.Literal
 
-	if p.peekTokenIs(IDENT) && p.peekToken.Literal == "requires" {
+	// current token and not peek token since expect peek traverses by one token
+	if p.peekTokenIs(DEPENDENCY) {
 		p.nextToken() // consume "requires"
 
 		if !p.expectPeek(IDENT) {
@@ -165,6 +166,7 @@ func (p *Parser) parseTaskDefinition() *TaskDef {
 			task.Dependencies = append(task.Dependencies, p.currentToken.Literal)
 		}
 	}
+
 	if !p.expectPeek(LBRACE) {
 		return nil
 	}

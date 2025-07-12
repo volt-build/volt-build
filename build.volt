@@ -1,4 +1,4 @@
-task build {
+task build { 
     push "Building.."
     compile "." "go build -o target/"
     push "Done with exit code: " ++ $?
@@ -15,8 +15,9 @@ task fmt {
     push "Done with exit code: "  ++ $?
 }
 
-task termlint {
+task termlint require fmt {
     push "Linting code"
 	compile "./..." "golangci-lint run"
     push "Done with exit code: "  ++ $?
 }
+
