@@ -326,14 +326,10 @@ func (i *Interpreter) evaluateShell(shellStmt *ShellStatement) (any, error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// run the command on different goroutine so its atleast a bit parallelized. (cuz its the start)
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- cmd.Run()
-	}()
+	err = cmd.Run()
 
 	i.env.progressDone++
-	return nil, <-errCh
+	return nil, err
 }
 
 func (i *Interpreter) evaluateShellWithoutPrinting(shellStmt *ShellStatement) (any, error) {
