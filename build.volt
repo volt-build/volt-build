@@ -1,6 +1,8 @@
 task build { 
     push "Building.."
-    compile "." "go build -o target/"
+	shell "mkdir -p ./build/" 
+	shell "echo '*' >> ./build/.gitignore"
+    compile "." "go build -o build/"
     push "Done with exit code: " ++ $?
 }
 
