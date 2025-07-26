@@ -284,13 +284,8 @@ func (i *Interpreter) evaluateExec(execStmt *ExecStatement) (any, error) {
 
 		savedTimestamp, exists := i.timestamps[input]
 
-		// DEBUG: Print the timestamps
-		fmt.Printf("DEBUG: %s - current: %v, saved: %v, exists: %v\n",
-			input, currentModTime, savedTimestamp, exists)
-
 		// Rebuild if: no saved timestamp OR saved timestamp is older than current mod time
 		if !exists || savedTimestamp.Before(currentModTime) {
-			fmt.Printf("DEBUG: Rebuilding because of %s\n", input)
 			shouldRebuild = true
 			break
 		}

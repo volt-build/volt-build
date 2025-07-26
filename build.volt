@@ -11,7 +11,7 @@ task something requires fmt {
 	shell "cat main.go" 
 }
 
-task fmt {
+task fmt input "./*.go", "./language/*.go" {
     push "starting formatting.... "
     foreach "./*.go" gofile {
         push "Formatting: " ++ gofile
