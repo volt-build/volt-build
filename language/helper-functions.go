@@ -106,6 +106,19 @@ func RunSingleTask(input string, taskName string, mode EvalMode) error {
 		return fmt.Errorf("failed to create .volt-build directory: %w", err)
 	}
 
+	gitignoreFile, err := os.Create("./.volt-build/.gitignore")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return err
+	}
+	_, err = gitignoreFile.WriteString("*")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return err
+	}
+
+	gitignoreFile.Close()
+
 	lexer := NewLexer(input)
 	parser := NewParser(lexer)
 	program := parser.ParseProgram()
