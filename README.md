@@ -1,5 +1,4 @@
 <h1 align="center"> volt-build </h1> 
-<small>A build system I wrote because run-tasks.sh was too much effort</small> 
 
 <h3 align="left">A few examples on usage</h1>
 
