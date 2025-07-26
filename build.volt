@@ -1,4 +1,4 @@
-task build { 
+task build input "main.go", "./language/*.go" { 
     push "Building.."
 	shell "mkdir -p ./build/" 
 	shell "echo '*' >> ./build/.gitignore"
@@ -19,6 +19,15 @@ task fmt {
         shell "gofumpt -w " ++ gofile
 		shell "goimports -w " ++ gofile 
     }
+
+    foreach "./language/*.go" gofile {
+        push "Formatting: " ++ gofile
+		# Run 2 formatters 
+        shell "gofumpt -w " ++ gofile
+		shell "goimports -w " ++ gofile 
+    }
+
+
     push "Done with exit code: "  ++ $?
 }
 

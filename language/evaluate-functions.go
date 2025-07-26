@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 // NOTE: possibly will be increasing GOMAXPROCS
@@ -253,26 +254,66 @@ func (i *Interpreter) evaluateExec(execStmt *ExecStatement) (any, error) {
 		return nil, fmt.Errorf("task %s not found", execStmt.TaskName)
 	}
 
+	// Execute dependencies first
 	for _, depName := range task.Dependencies {
-		dep, exists := i.env.GetTask(depName)
+		_, exists := i.env.GetTask(depName)
 		if !exists {
 			return nil, fmt.Errorf("task %s doesn't exist", depName)
 		}
 
-		_, err := i.Evaluate(dep.Body)
+		// Use evaluateExec for dependencies too (for proper timestamp handling)
+		depExecStmt := &ExecStatement{TaskName: depName}
+		_, err := i.evaluateExec(depExecStmt)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	for _, inputName := range task.Inputs {
-		_, err := os.Stat(inputName)
+	// Capture current timestamps for all inputs ONCE
+	currentTimestamps := make(map[string]time.Time)
+	shouldRebuild := false
+
+	for _, input := range task.Inputs {
+		info, err := os.Stat(input)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error: input %s has this error: %w", input, err)
+		}
+
+		currentModTime := info.ModTime().Truncate(time.Second)
+		currentTimestamps[input] = currentModTime // Store for later use
+
+		savedTimestamp, exists := i.timestamps[input]
+
+		// DEBUG: Print the timestamps
+		fmt.Printf("DEBUG: %s - current: %v, saved: %v, exists: %v\n",
+			input, currentModTime, savedTimestamp, exists)
+
+		// Rebuild if: no saved timestamp OR saved timestamp is older than current mod time
+		if !exists || savedTimestamp.Before(currentModTime) {
+			fmt.Printf("DEBUG: Rebuilding because of %s\n", input)
+			shouldRebuild = true
+			break
 		}
 	}
 
-	return i.Evaluate(task.Body)
+	if !shouldRebuild {
+		fmt.Printf("skipping Task %s (inputs unchanged)\n", execStmt.TaskName)
+		return nil, nil
+	}
+
+	// Execute the task
+	result, err := i.Evaluate(task.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update timestamps using the values we captured earlier
+	for input, timestamp := range currentTimestamps {
+		i.timestamps[input] = timestamp
+	}
+
+	fmt.Printf("rebuilt Task %s\n", execStmt.TaskName)
+	return result, nil
 }
 
 func (i *Interpreter) evaluateExecWithoutPrinting(execStmt *ExecStatement) (any, error) {

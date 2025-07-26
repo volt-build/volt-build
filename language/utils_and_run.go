@@ -3,8 +3,13 @@ package language
 // this file contains utils and the main run.
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"time"
 )
+
+const TIMESTAMP_PATH = ".volt-build/timestamps.json"
 
 // TODO: add progress feedback
 type Environment struct {
@@ -42,13 +47,64 @@ func (env *Environment) GetTask(name string) (*TaskDef, bool) {
 }
 
 type Interpreter struct {
-	env *Environment
+	env        *Environment
+	timestamps map[string]time.Time
 }
 
 func NewInterpreter() *Interpreter {
 	return &Interpreter{
-		env: NewEnvironment(),
+		env:        NewEnvironment(),
+		timestamps: make(map[string]time.Time),
 	}
+}
+
+func (i *Interpreter) updateTimestamps(inputs []string) error {
+	for _, input := range inputs {
+		info, err := os.Stat(input)
+		if err != nil {
+			return fmt.Errorf("error updating timestamp for %s: %w", input, err)
+		}
+		i.timestamps[input] = info.ModTime()
+	}
+	return nil
+}
+
+func (i *Interpreter) loadTimestamps(path string) (map[string]time.Time, error) {
+	raw := map[string]string{}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return make(map[string]time.Time), nil
+		}
+		return nil, err
+	}
+	err = json.Unmarshal(data, &raw)
+	if err != nil {
+		return nil, err
+	}
+
+	timestamps := make(map[string]time.Time)
+	for k, v := range raw {
+		t, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			return nil, err
+		}
+		timestamps[k] = t
+	}
+
+	return timestamps, nil
+}
+
+func (i *Interpreter) saveTimestamps(path string, timestamps map[string]time.Time) error {
+	raw := map[string]string{}
+	for k, v := range timestamps {
+		raw[k] = v.Format(time.RFC3339)
+	}
+	data, err := json.MarshalIndent(raw, "", "\t")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0o644)
 }
 
 func (i *Interpreter) GetTasks() map[string]*TaskDef {

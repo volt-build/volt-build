@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 )
 
 type EvalMode int
@@ -17,8 +18,37 @@ const (
 	EvalRegular
 )
 
-// Main way to interact with everything.
+func Exists(filepath string) bool {
+	_, err := os.Stat(filepath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false
+		} else {
+			return true // different error, doesn't need to be detected
+		}
+	}
+	return true
+}
+
 func RunTaskScript(input string, mode EvalMode) error {
+	err := os.MkdirAll("./.volt-build/", 0o755)
+	if err != nil {
+		return err
+	}
+
+	gitignoreFile, err := os.Create("./.volt-build/.gitignore")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return err
+	}
+	_, err = gitignoreFile.WriteString("*")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return err
+	}
+
+	gitignoreFile.Close()
+
 	lex := NewLexer(input)
 	parser := NewParser(lex)
 	program := parser.ParseProgram()
@@ -29,22 +59,29 @@ func RunTaskScript(input string, mode EvalMode) error {
 		}
 		return errors.New("parsing failed")
 	}
+
 	interpreter := NewInterpreter()
+	timestamps, err := interpreter.loadTimestamps(TIMESTAMP_PATH)
+	if err != nil {
+		fmt.Printf("Failed to load timestamps for incremental rebuilds: %v\n", err)
+	}
+	interpreter.timestamps = timestamps
+
 	switch mode {
 	case EvalRegular:
-		_, err := interpreter.Evaluate(program)
+		_, err = interpreter.Evaluate(program)
 		if err != nil {
 			fmt.Printf("evaluation failed: %v\n", err)
 			return err
 		}
 	case EvalVerbose:
-		_, err := interpreter.EvaluateVerbosely(program)
+		_, err = interpreter.EvaluateVerbosely(program)
 		if err != nil {
 			fmt.Printf("evaluation failed: %v\n", err)
 			return err
 		}
 	case EvalSilent:
-		_, err := interpreter.EvaluateWithoutPrinting(program)
+		_, err = interpreter.EvaluateWithoutPrinting(program)
 		if err != nil {
 			fmt.Printf("evaluation failed: %v\n", err)
 			return err
@@ -53,12 +90,22 @@ func RunTaskScript(input string, mode EvalMode) error {
 		fmt.Printf("Invalid evalMode.\n")
 		return errors.New("invalid eval")
 	}
+
+	// Save timestamps after successful execution
+	err = interpreter.saveTimestamps(TIMESTAMP_PATH, interpreter.timestamps)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-// here, input is the whole file and taskName is the name of the task to be run without variables
-// Run a single task with this function for flags/position arguments;
+// Updated RunSingleTask function
 func RunSingleTask(input string, taskName string, mode EvalMode) error {
+	err := os.MkdirAll("./.volt-build/", 0o755)
+	if err != nil {
+		return fmt.Errorf("failed to create .volt-build directory: %w", err)
+	}
+
 	lexer := NewLexer(input)
 	parser := NewParser(lexer)
 	program := parser.ParseProgram()
@@ -71,6 +118,13 @@ func RunSingleTask(input string, taskName string, mode EvalMode) error {
 	}
 
 	interpreter := NewInterpreter()
+	timestamps, err := interpreter.loadTimestamps(TIMESTAMP_PATH)
+	if err != nil {
+		fmt.Printf("Failed to load timestamps for incremental rebuilds: %v\n", err)
+	}
+	interpreter.timestamps = timestamps
+
+	// Register tasks
 	for _, stmt := range program.Statements {
 		if stmt.Type() == TaskDefNode {
 			task := stmt.(*TaskDef)
@@ -80,35 +134,30 @@ func RunSingleTask(input string, taskName string, mode EvalMode) error {
 
 	task, exists := interpreter.env.GetTask(taskName)
 	if !exists {
-		return fmt.Errorf("task does not exist : %s", task)
+		return fmt.Errorf("task does not exist: %s", taskName)
 	}
 
-	execStmt := &ExecStatement{TaskName: taskName}
-	var err error
+	execStmt := &ExecStatement{TaskName: task.Name}
+
 	switch mode {
 	case EvalSilent:
-		_, err = interpreter.evaluateExecWithoutPrinting(execStmt) // works
+		_, err = interpreter.evaluateExecWithoutPrinting(execStmt)
 	case EvalVerbose:
-		_, err = interpreter.evaluateExecVerbose(execStmt) // FIXME: Verbose mode;
+		_, err = interpreter.evaluateExecVerbose(execStmt)
 	case EvalRegular:
-		_, err = interpreter.evaluateExec(execStmt) // works
-	}
-	return err
-}
-
-func RunTaskScriptWithStatus(input string /* mode EvalMode // not yet supported */) error {
-	lexer := NewLexer(input)
-	parser := NewParser(lexer)
-	progrem := parser.ParseProgram()
-
-	if len(parser.errors) > 0 {
-		for _, i := range parser.errors {
-			fmt.Printf("%s\n", i)
-		}
-		return errors.New("parsing failed")
+		_, err = interpreter.evaluateExec(execStmt)
+	default:
+		return fmt.Errorf("invalid EvalMode")
 	}
 
-	interpreter := NewInterpreter()
-	_, err := interpreter.Evaluate(progrem)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Save timestamps after execution
+	if saveErr := interpreter.saveTimestamps(TIMESTAMP_PATH, interpreter.timestamps); saveErr != nil {
+		return fmt.Errorf("failed to save timestamps: %w", saveErr)
+	}
+
+	return nil
 }

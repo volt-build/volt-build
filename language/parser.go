@@ -2,6 +2,7 @@ package language
 
 import (
 	"fmt"
+	"path/filepath"
 	"strconv"
 )
 
@@ -138,6 +139,10 @@ func (p *Parser) parseExpressionWithConcat() Node {
 	return left
 }
 
+func (p *Parser) errorf(pattern string, args ...any) {
+	p.errors = append(p.errors, fmt.Sprintf(pattern, args...))
+}
+
 func (p *Parser) parseTaskDefinition() *TaskDef {
 	task := &TaskDef{}
 	task.Dependencies = []string{} // init a empty slice for now.
@@ -174,14 +179,24 @@ func (p *Parser) parseTaskDefinition() *TaskDef {
 			return nil
 		}
 
-		task.Inputs = append(task.Inputs, p.currentToken.Literal)
+		globbedSlice, err := filepath.Glob(p.currentToken.Literal)
+		if err != nil {
+			p.errorf("error making glob pattern: %v\n", err)
+			return nil
+		}
+		task.Inputs = append(task.Inputs, globbedSlice...)
 
 		for p.peekTokenIs(COMMA) {
 			p.nextToken()
-			if !p.expectPeek(IDENT) {
+			if !p.expectPeek(STRING) {
 				return nil
 			}
-			task.Inputs = append(task.Inputs, p.currentToken.Literal)
+			globbedSlice, err = filepath.Glob(p.currentToken.Literal)
+			if err != nil {
+				p.errorf("error making glob pattern: %v\n", err)
+				return nil
+			}
+			task.Inputs = append(task.Inputs, globbedSlice...)
 		}
 	}
 
