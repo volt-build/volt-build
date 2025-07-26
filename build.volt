@@ -4,6 +4,11 @@ task build {
     push "Done with exit code: " ++ $?
 }
 
+
+task something requires fmt {
+	shell "cat main.go" 
+}
+
 task fmt {
     push "starting formatting.... "
     foreach "./*.go" gofile {
@@ -15,9 +20,16 @@ task fmt {
     push "Done with exit code: "  ++ $?
 }
 
-task termlint require fmt {
+task termlint requires fmt {
     push "Linting code"
 	compile "./..." "golangci-lint run"
     push "Done with exit code: "  ++ $?
 }
 
+task build_system_test {
+	var = "variable string dude" 
+	push var 
+	if 1 { # boolean condition 
+		push "true" 
+	}
+}

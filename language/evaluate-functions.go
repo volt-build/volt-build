@@ -265,6 +265,13 @@ func (i *Interpreter) evaluateExec(execStmt *ExecStatement) (any, error) {
 		}
 	}
 
+	for _, inputName := range task.Inputs {
+		_, err := os.Stat(inputName)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return i.Evaluate(task.Body)
 }
 

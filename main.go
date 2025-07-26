@@ -19,7 +19,7 @@ func main() {
 
 	flag.Parse()
 	if *version {
-		fmt.Println("volt: version 0.1.0")
+		fmt.Println("volt-build: version 0.1.0")
 		return
 	}
 

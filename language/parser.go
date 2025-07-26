@@ -167,6 +167,24 @@ func (p *Parser) parseTaskDefinition() *TaskDef {
 		}
 	}
 
+	if p.peekTokenIs(INPUT) {
+		p.nextToken() // consume "input"
+
+		if !p.expectPeek(STRING) {
+			return nil
+		}
+
+		task.Inputs = append(task.Inputs, p.currentToken.Literal)
+
+		for p.peekTokenIs(COMMA) {
+			p.nextToken()
+			if !p.expectPeek(IDENT) {
+				return nil
+			}
+			task.Inputs = append(task.Inputs, p.currentToken.Literal)
+		}
+	}
+
 	if !p.expectPeek(LBRACE) {
 		return nil
 	}

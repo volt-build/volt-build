@@ -71,7 +71,7 @@ var lexerMap map[TokenType]string = map[TokenType]string{
 	RUN:         "RUN",
 	IF:          "IF",
 	ELSE:        "ELSE",
-	IMPORT:      "IMPORT",
+	INPUT:       "INPUT",
 	DEPENDENCY:  "DEPENDENCY",
 	SWAP:        "SWAP",
 	WHILE:       "WHILE",
@@ -119,6 +119,7 @@ func (p *Program) String() string {
 
 type TaskDef struct {
 	Name         string
+	Inputs       []string
 	Dependencies []string
 	Body         Node
 }
