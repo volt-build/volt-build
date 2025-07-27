@@ -27,10 +27,10 @@
         ];
       };
       packages.default = pkgs.buildGoModule {
-        pname = "volt";
-        version = "0.1.0";
+        pname = "volt-build";
+        version = "0.1.1";
         src = ./.;
-        vendorHash = null;
+        vendorHash = "sha256-Mq1r4dSHx8x5EiqXAecrcOXYIZiUwLF1xvaeYKQYqW0=";
 
         meta = {
           description = "A small build system to make running repetitive tasks easier without polluting PATH or making it hard to run commands with scripts.";

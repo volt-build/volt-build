@@ -39,7 +39,7 @@ func (i *Interpreter) spawnCompile(cmpStmt *CompileStatement) (any, error) {
 		}
 		absolutePath, err := filepath.Abs(fileStr)
 		if err != nil {
-			fmt.Printf("Error: %v\n", err)
+			fmt.Printf("\x1b[1;31merror:\x1b[0m %v\n", err)
 		}
 		cmdExpr, err := i.Evaluate(cmpStmt.Command)
 		if err != nil {
@@ -292,7 +292,7 @@ func (i *Interpreter) evaluateExec(execStmt *ExecStatement) (any, error) {
 	}
 
 	if !shouldRebuild {
-		fmt.Printf("skipping Task %s (inputs unchanged)\n", execStmt.TaskName)
+		fmt.Printf("\x1b[1;32m[INFO]\x1b[0m skipping task %s (inputs unchanged)\n", execStmt.TaskName)
 		return nil, nil
 	}
 
@@ -307,7 +307,7 @@ func (i *Interpreter) evaluateExec(execStmt *ExecStatement) (any, error) {
 		i.timestamps[input] = timestamp
 	}
 
-	fmt.Printf("rebuilt Task %s\n", execStmt.TaskName)
+	fmt.Printf("\x1b[1;32m[INFO]\x1b[0m rebuilt task %s\n", execStmt.TaskName)
 	return result, nil
 }
 

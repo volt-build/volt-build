@@ -38,12 +38,12 @@ func RunTaskScript(input string, mode EvalMode) error {
 
 	gitignoreFile, err := os.Create("./.volt-build/.gitignore")
 	if err != nil {
-		fmt.Printf("error: %v\n", err)
+		fmt.Printf("\x1b[1;31merror:\x1b[0m %v\n", err)
 		return err
 	}
 	_, err = gitignoreFile.WriteString("*")
 	if err != nil {
-		fmt.Printf("error: %v\n", err)
+		fmt.Printf("\x1b[1;31merror:\x1b[0m %v\n", err)
 		return err
 	}
 
@@ -108,12 +108,12 @@ func RunSingleTask(input string, taskName string, mode EvalMode) error {
 
 	gitignoreFile, err := os.Create("./.volt-build/.gitignore")
 	if err != nil {
-		fmt.Printf("error: %v\n", err)
+		fmt.Printf("\x1b[1;31merror:\x1b[0m %v\n", err)
 		return err
 	}
 	_, err = gitignoreFile.WriteString("*")
 	if err != nil {
-		fmt.Printf("error: %v\n", err)
+		fmt.Printf("\x1b[1;31merror:\x1b[0m %v\n", err)
 		return err
 	}
 
