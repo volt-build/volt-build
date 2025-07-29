@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 type Parser struct {
@@ -54,9 +55,38 @@ func (p *Parser) expectPeek(t TokenType) bool {
 	return false
 }
 
+func (p *Parser) getLinesFromFile(line, column int) (string, error) {
+	lines := strings.Split(p.l.input, "\n")
+	if line <= 0 || line > len(lines) {
+		return "", fmt.Errorf("line number: %d is out of bounds", line)
+	}
+	var out strings.Builder
+	out.WriteString("\n")
+	target := lines[line-1]
+	out.WriteString(target)
+	out.WriteString("\n")
+
+	r := []rune(target)
+	if column <= 0 {
+		column = 1
+	} else if column > len(r)+1 {
+		column = len(r) + 1
+	}
+
+	out.WriteString(strings.Repeat(" ", column-1) + "^")
+
+	return out.String(), nil
+}
+
 func (p *Parser) peekError(t TokenType) {
-	msg := fmt.Sprintf("Line %d, Column %d: expected next token to be %v, got %v instead", p.peekToken.Line, p.peekToken.Column, lexerMap[t], lexerMap[p.peekToken.Type])
-	p.errors = append(p.errors, msg)
+	linesFromFile, err := p.getLinesFromFile(p.l.line, p.l.column)
+	if err != nil {
+		panic(err.Error())
+	}
+	p.errorf(
+		"%d:%d:expected next token to be %v, got %v instead, Perhaps you missed a character?:\n"+linesFromFile,
+		p.l.line, p.l.column, lexerMap[t], lexerMap[p.currentToken.Type],
+	)
 }
 
 func (p *Parser) ParseProgram() *Program {

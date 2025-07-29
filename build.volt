@@ -44,3 +44,8 @@ task build_system_test {
 		push "true" 
 	}
 }
+
+
+task something input "something" "somethin_else" {
+	push "test" 
+}

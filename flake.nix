@@ -1,5 +1,5 @@
 {
-  description = "volt: A small build system I wrote for myself to run repetitive tasks easily";
+  description = "volt-build";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
