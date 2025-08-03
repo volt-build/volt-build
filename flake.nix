@@ -16,6 +16,7 @@
       lib = pkgs.lib;
     in {
       devShells.default = pkgs.mkShell {
+        name = "volt-build";
         packages = [
           # lot of tools, use every single one of them.
           pkgs.go
